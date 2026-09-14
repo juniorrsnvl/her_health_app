@@ -36,7 +36,7 @@ def database_test(current_user=Depends(get_current_user)):
 
         return {
             "database": "connected",
-            "message": "FastAPI successfully connected to MySQL"
+            "message": "FastAPI successfully connected to the database"
         }
 
     return {
