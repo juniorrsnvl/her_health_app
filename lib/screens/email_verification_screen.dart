@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'login_screen.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
@@ -151,10 +152,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
       if (!mounted) return;
       _showMessage(
-        'Account verified successfully via $selectedMethod 🌸',
+        'Account verified successfully via $selectedMethod 🌸 Please log in.',
       );
-      // TODO: once login is wired up, navigate to the login screen (or
-      // straight into the app) here instead of just showing a message.
+
+      // Verification is done: send the user to the login screen and clear
+      // the registration/verification screens from the back stack, so the
+      // back button can't return to a finished verification.
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
     } catch (e) {
       _showMessage(e.toString(), isError: true);
     } finally {
