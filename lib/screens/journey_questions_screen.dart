@@ -175,6 +175,54 @@ class _JourneyQuestionsScreenState
   String? selectedPainLevel;
   String? selectedMood;
 
+  // ===========================
+  // Missing controllers (added to fix compile errors --
+  // these were referenced in buildQuestion() calls below
+  // but never declared)
+  // ===========================
+
+  final TextEditingController pregnancyWeeksController =
+      TextEditingController();
+
+  final TextEditingController firstPregnancyController =
+      TextEditingController();
+
+  final TextEditingController antenatalController =
+      TextEditingController();
+
+  final TextEditingController complicationsController =
+      TextEditingController();
+
+  final TextEditingController vitaminsController =
+      TextEditingController();
+
+  final TextEditingController periodLengthController =
+      TextEditingController();
+
+  final TextEditingController crampsController =
+      TextEditingController();
+
+  final TextEditingController regularController =
+      TextEditingController();
+
+  final TextEditingController birthControlController =
+      TextEditingController();
+
+  final TextEditingController postpartumWeeksController =
+      TextEditingController();
+
+  final TextEditingController sleepController =
+      TextEditingController();
+
+  final TextEditingController moodController =
+      TextEditingController();
+
+  final TextEditingController postpartumCheckController =
+      TextEditingController();
+
+  final TextEditingController postpartumConcernController =
+      TextEditingController();
+
   // --------------------------------------------------
   // Helper Methods
   // --------------------------------------------------
