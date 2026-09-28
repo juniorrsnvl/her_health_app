@@ -35,6 +35,15 @@ class ResendCodesRequest(BaseModel):
     email: EmailStr
 
 
+def _mask_phone(phone) -> str:
+    """Shows only the last 4 digits, e.g. '******1961'."""
+    if not phone:
+        return ""
+    if len(phone) <= 4:
+        return phone
+    return "*" * (len(phone) - 4) + phone[-4:]
+
+
 def _generate_code() -> str:
     """6-digit numeric code, as a zero-padded string (e.g. '004821')."""
     return f"{random.randint(0, 999999):06d}"
@@ -201,7 +210,7 @@ def resend_codes(request: ResendCodesRequest):
 
     try:
         cursor.execute(
-            "SELECT id FROM users WHERE email = %s",
+            "SELECT id, phone FROM users WHERE email = %s",
             (request.email,)
         )
 
@@ -233,6 +242,7 @@ def resend_codes(request: ResendCodesRequest):
 
         return {
             "message": "New verification codes generated.",
+            "phone": _mask_phone(existing_user["phone"]),
             # SIMULATED SENDING -- see note in register_user above.
             "email_code": email_code,
             "phone_code": phone_code,
@@ -252,7 +262,8 @@ def login_user(user: LoginRequest):
     try:
         cursor.execute(
             """
-            SELECT id, role_id, email, password_hash, is_active
+            SELECT id, role_id, email, password_hash, is_active,
+                   is_verified, is_phone_verified
             FROM users
             WHERE email = %s
             """,
@@ -283,6 +294,21 @@ def login_user(user: LoginRequest):
                 status_code=401,
                 detail="Invalid email or password."
             )
+
+        # Patients (role 1) must have verified at least one of email or
+        # phone -- their choice. Staff accounts (roles 2, 3, 4) are created
+        # directly by the admin rather than through registration, so they
+        # skip this check.
+        if existing_user["role_id"] == 1:
+            verified = (
+                existing_user["is_verified"]
+                or existing_user["is_phone_verified"]
+            )
+            if not verified:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Please verify your email or phone number before logging in."
+                )
 
         token = create_access_token(
             existing_user["id"],

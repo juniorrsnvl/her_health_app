@@ -1,6 +1,27 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+/// An error from the backend, carrying the HTTP status code so callers can
+/// react to specific cases (e.g. an unverified account at login).
+///
+/// toString() returns just the message, so existing code that shows
+/// e.toString() to the user keeps working unchanged.
+class AuthException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  AuthException(this.message, {this.statusCode});
+
+  /// True when login was refused because the account isn't verified yet.
+  /// Matches the 403 the backend sends for that case (a 403 is also used
+  /// for inactive accounts, so the message is checked as well).
+  bool get isUnverified =>
+      statusCode == 403 && message.toLowerCase().contains('verify');
+
+  @override
+  String toString() => message;
+}
+
 /// Handles HTTP calls to the FastAPI backend for the patient app.
 ///
 /// Base URL notes:
@@ -12,6 +33,18 @@ import 'package:http/http.dart' as http;
 ///   with the phone on the same Wi-Fi network.
 class AuthService {
   static const String baseUrl = 'http://127.0.0.1:8000';
+
+  /// The login token, held in memory only for now -- it is lost when the
+  /// app restarts. Persistent storage (flutter_secure_storage) should be
+  /// added when authenticated endpoints such as the health journey are
+  /// wired up.
+  static String? accessToken;
+
+  static bool get isLoggedIn => accessToken != null;
+
+  static void logout() {
+    accessToken = null;
+  }
 
   /// Registers a new account. On success, returns a map containing
   /// email_code and phone_code -- these are SIMULATED verification codes
@@ -63,7 +96,9 @@ class AuthService {
       'email': email,
       'password': password,
     });
-    return response['access_token'] as String;
+    final token = response['access_token'] as String;
+    accessToken = token;
+    return token;
   }
 
   static Future<Map<String, dynamic>> _post(
@@ -78,7 +113,9 @@ class AuthService {
         body: jsonEncode(body),
       );
     } catch (e) {
-      throw 'Could not reach the server. Check your connection and try again.';
+      throw AuthException(
+        'Could not reach the server. Check your connection and try again.',
+      );
     }
 
     Map<String, dynamic>? data;
@@ -90,7 +127,10 @@ class AuthService {
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final detail = data?['detail'];
-      throw detail is String ? detail : 'Something went wrong. Please try again.';
+      throw AuthException(
+        detail is String ? detail : 'Something went wrong. Please try again.',
+        statusCode: response.statusCode,
+      );
     }
 
     return data ?? {};
