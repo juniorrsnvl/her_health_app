@@ -7,6 +7,8 @@ from routers.patients import router as patients_router
 from routers.services import router as services_router
 from routers.appointments import router as appointments_router
 from routers.health_journey import router as health_journey_router
+from routers.chat import router as chat_router
+
 
 
 app = FastAPI(
@@ -27,6 +29,7 @@ app.include_router(patients_router)
 app.include_router(services_router)
 app.include_router(appointments_router)
 app.include_router(health_journey_router)
+app.include_router(chat_router)
 
 @app.get("/")
 def root():

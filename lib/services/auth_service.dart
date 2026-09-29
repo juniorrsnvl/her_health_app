@@ -188,24 +188,129 @@ class AuthService {
     return _handleResponse(response);
   }
 
-  /// Shared response parsing for both _post and _authorizedPost.
+  /// Shared response parsing, for endpoints that return a single JSON
+  /// object (a Map). Delegates to _handleResponseRaw, which also backs
+  /// the *Raw variants below for endpoints that return a JSON array
+  /// instead (appointments, chat messages).
   static Map<String, dynamic> _handleResponse(http.Response response) {
+    final data = _handleResponseRaw(response);
+    return (data is Map<String, dynamic>) ? data : {};
+  }
 
-    Map<String, dynamic>? data;
+  /// Same error handling as _handleResponse, but returns whatever JSON
+  /// shape the backend actually sent -- a Map or a List -- instead of
+  /// forcing a Map cast that would throw on a list response.
+  static dynamic _handleResponseRaw(http.Response response) {
+    dynamic data;
     try {
-      data = jsonDecode(response.body) as Map<String, dynamic>;
+      data = jsonDecode(response.body);
     } catch (_) {
       data = null;
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final detail = data?['detail'];
+      final detail = (data is Map) ? data['detail'] : null;
       throw AuthException(
         detail is String ? detail : 'Something went wrong. Please try again.',
         statusCode: response.statusCode,
       );
     }
 
-    return data ?? {};
+    return data;
+  }
+
+  /// Same as _authorizedPost, but for endpoints that return a JSON array
+  /// (e.g. /appointments, /chat/message) rather than a single object.
+  static Future<dynamic> _authorizedGetRaw(String path) async {
+    final token = accessToken;
+    if (token == null) {
+      throw AuthException('You need to be logged in to do that.');
+    }
+
+    late http.Response response;
+    try {
+      response = await http.get(
+        Uri.parse('$baseUrl$path'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+    } catch (e) {
+      throw AuthException(
+        'Could not reach the server. Check your connection and try again.',
+      );
+    }
+
+    return _handleResponseRaw(response);
+  }
+
+  /// List-returning counterpart to _authorizedPost.
+  static Future<dynamic> _authorizedPostRaw(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final token = accessToken;
+    if (token == null) {
+      throw AuthException('You need to be logged in to do that.');
+    }
+
+    late http.Response response;
+    try {
+      response = await http.post(
+        Uri.parse('$baseUrl$path'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+    } catch (e) {
+      throw AuthException(
+        'Could not reach the server. Check your connection and try again.',
+      );
+    }
+
+    return _handleResponseRaw(response);
+  }
+
+  // ===========================================================
+  // Appointments
+  // ===========================================================
+
+  /// The logged-in patient's own appointments, most recent first (the
+  /// backend already sorts them that way).
+  static Future<List<dynamic>> getMyAppointments() async {
+    final data = await _authorizedGetRaw('/appointments');
+    return (data is List) ? data : [];
+  }
+
+  /// Requests a new appointment. date is 'YYYY-MM-DD', time is 'HH:MM:SS'.
+  static Future<void> requestAppointment({
+    required String date,
+    required String time,
+    String? reason,
+  }) async {
+    await _authorizedPostRaw('/appointments/request', {
+      'requested_date': date,
+      'requested_time': time,
+      if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+    });
+  }
+
+  // ===========================================================
+  // Chat (Nia)
+  // ===========================================================
+
+  /// Sends a message and returns both the saved user message and the
+  /// saved reply, as a 2-item list, in that order.
+  static Future<List<dynamic>> sendChatMessage(String message) async {
+    final data = await _authorizedPostRaw('/chat/message', {
+      'message': message,
+    });
+    return (data is List) ? data : [];
+  }
+
+  /// Full conversation history, oldest first.
+  static Future<List<dynamic>> getChatHistory() async {
+    final data = await _authorizedGetRaw('/chat/messages');
+    return (data is List) ? data : [];
   }
 }
