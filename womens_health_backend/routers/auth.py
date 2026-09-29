@@ -1,6 +1,6 @@
 import random
-from datetime import datetime, timedelta
-from typing import Literal
+from datetime import date, datetime, timedelta
+from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
@@ -18,6 +18,14 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     phone: str
     password: str
+
+    # Optional so existing callers keep working. When full_name is sent, a
+    # patient profile is created together with the account -- the health
+    # journey endpoints need that profile to exist.
+    full_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
@@ -42,6 +50,14 @@ def _mask_phone(phone) -> str:
     if len(phone) <= 4:
         return phone
     return "*" * (len(phone) - 4) + phone[-4:]
+
+
+def _split_name(full_name: str):
+    """'Ada Lovelace King' -> ('Ada', 'Lovelace King'); 'Ada' -> ('Ada', '')."""
+    parts = full_name.strip().split(None, 1)
+    first = parts[0] if parts else ""
+    last = parts[1] if len(parts) > 1 else ""
+    return first, last
 
 
 def _generate_code() -> str:
@@ -82,6 +98,7 @@ def register_user(user: RegisterRequest):
              email_code, email_code_expires_at,
              phone_code, phone_code_expires_at, is_phone_verified)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
             """,
             (
                 1,
@@ -98,6 +115,31 @@ def register_user(user: RegisterRequest):
             )
         )
 
+        # RETURNING is PostgreSQL syntax (MySQL would use cursor.lastrowid).
+        new_user_id = cursor.fetchone()["id"]
+
+        if user.full_name and user.full_name.strip():
+            first_name, last_name = _split_name(user.full_name)
+            cursor.execute(
+                """
+                INSERT INTO patients
+                (user_id, first_name, last_name, phone, date_of_birth,
+                 emergency_contact_name, emergency_contact_phone)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    new_user_id,
+                    first_name,
+                    last_name,
+                    user.phone,
+                    user.date_of_birth,
+                    user.emergency_contact_name,
+                    user.emergency_contact_phone,
+                )
+            )
+
+        # One commit for both inserts: the account and its profile are
+        # created together or not at all.
         connection.commit()
 
         return {

@@ -298,6 +298,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleCreateAccount() async {
+    if (nameController.text.trim().isEmpty) {
+      _showError('Please enter your full name.');
+      return;
+    }
     if (emailController.text.trim().isEmpty) {
       _showError('Please enter your email address.');
       return;
@@ -324,6 +328,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: emailController.text.trim(),
         phone: phoneController.text.trim(),
         password: passwordController.text,
+        fullName: nameController.text,
+        dateOfBirth: selectedDob,
+        emergencyContactName: emergencyNameController.text,
+        emergencyContactPhone: emergencyPhoneController.text,
       );
 
       if (!mounted) return;

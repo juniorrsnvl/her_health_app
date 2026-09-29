@@ -55,13 +55,37 @@ class AuthService {
     required String email,
     required String phone,
     required String password,
+    String? fullName,
+    DateTime? dateOfBirth,
+    String? emergencyContactName,
+    String? emergencyContactPhone,
   }) async {
-    final response = await _post('/auth/register', {
+    final body = <String, dynamic>{
       'email': email,
       'phone': phone,
       'password': password,
-    });
-    return response;
+    };
+
+    // Optional profile details -- only sent when filled in. When a name is
+    // sent, the backend creates the patient profile together with the
+    // account.
+    if (fullName != null && fullName.trim().isNotEmpty) {
+      body['full_name'] = fullName.trim();
+    }
+    if (dateOfBirth != null) {
+      final mm = dateOfBirth.month.toString().padLeft(2, '0');
+      final dd = dateOfBirth.day.toString().padLeft(2, '0');
+      body['date_of_birth'] = '${dateOfBirth.year}-$mm-$dd';
+    }
+    if (emergencyContactName != null && emergencyContactName.trim().isNotEmpty) {
+      body['emergency_contact_name'] = emergencyContactName.trim();
+    }
+    if (emergencyContactPhone != null &&
+        emergencyContactPhone.trim().isNotEmpty) {
+      body['emergency_contact_phone'] = emergencyContactPhone.trim();
+    }
+
+    return await _post('/auth/register', body);
   }
 
   /// Verifies the account using ONE method -- 'email' or 'phone' -- with
@@ -88,6 +112,18 @@ class AuthService {
   }
 
   /// Logs in, returning the access token on success.
+  /// Saves (creates or updates) the caller's health journey. Requires the
+  /// user to be logged in -- accessToken must be set.
+  static Future<void> saveHealthJourney({
+    required String journeyType,
+    required Map<String, dynamic> answers,
+  }) async {
+    await _authorizedPost('/health-journey/setup', {
+      'journey_type': journeyType,
+      'answers': answers,
+    });
+  }
+
   static Future<String> login({
     required String email,
     required String password,
@@ -99,6 +135,37 @@ class AuthService {
     final token = response['access_token'] as String;
     accessToken = token;
     return token;
+  }
+
+  /// Same as _post, but attaches the logged-in user's token. Throws an
+  /// AuthException immediately if no one is logged in, rather than sending
+  /// a request that the backend would just reject as unauthenticated.
+  static Future<Map<String, dynamic>> _authorizedPost(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final token = accessToken;
+    if (token == null) {
+      throw AuthException('You need to be logged in to do that.');
+    }
+
+    late http.Response response;
+    try {
+      response = await http.post(
+        Uri.parse('$baseUrl$path'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+    } catch (e) {
+      throw AuthException(
+        'Could not reach the server. Check your connection and try again.',
+      );
+    }
+
+    return _handleResponse(response);
   }
 
   static Future<Map<String, dynamic>> _post(
@@ -117,6 +184,12 @@ class AuthService {
         'Could not reach the server. Check your connection and try again.',
       );
     }
+
+    return _handleResponse(response);
+  }
+
+  /// Shared response parsing for both _post and _authorizedPost.
+  static Map<String, dynamic> _handleResponse(http.Response response) {
 
     Map<String, dynamic>? data;
     try {

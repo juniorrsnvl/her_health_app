@@ -152,7 +152,14 @@ class _HealthSetupScreenState extends State<HealthSetupScreen> {
                                 return;
                               }
 
-                           
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => JourneyQuestionsScreen(
+                                    journey: selectedJourney!,
+                                  ),
+                                ),
+                              );
                             },
                             child: const Text(
                               "Continue 🌸",

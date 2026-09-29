@@ -1,10 +1,9 @@
 """
 routers/health_journey.py
 
-Backs health_setup_screen.dart and journey_questions_screen.dart.
-Written in the same style as the existing routers (patients.py,
-appointments.py) -- raw psycopg2 queries via get_database_connection(),
-JWT auth via get_current_user() -- so it fits straight into main.py:
+Backs health_setup_screen.dart and journey_questions_screen.dart. Same
+style as the other routers -- raw psycopg2 queries via
+get_database_connection(), JWT auth via get_current_user().
 
     from routers.health_journey import router as health_journey_router
     app.include_router(health_journey_router, prefix="/health-journey", tags=["Health Journey"])
@@ -12,10 +11,12 @@ JWT auth via get_current_user() -- so it fits straight into main.py:
 
 from fastapi import APIRouter, Depends, HTTPException
 from psycopg2.extras import Json
+from pydantic import ValidationError
 
 from config.database import get_database_connection
 from utils.dependencies import get_current_user
 from models.health_journey import (
+    ANSWER_MODELS,
     HealthJourneySetupRequest,
     HealthJourneyResponse,
     HealthJourneyEntryRequest,
@@ -47,6 +48,12 @@ def setup_health_journey(
     CURRENT journey -- calling this again (even with a different
     journey_type) updates the existing row rather than creating a new one.
     """
+    model_cls = ANSWER_MODELS[request.journey_type]
+    try:
+        validated_answers = model_cls(**request.answers)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
     connection = get_database_connection()
     try:
         cursor = connection.cursor(dictionary=True)
@@ -63,7 +70,7 @@ def setup_health_journey(
                 updated_at = CURRENT_TIMESTAMP
             RETURNING id, patient_id, journey_type, answers, created_at, updated_at
             """,
-            (patient_id, request.journey_type, Json(request.answers.dict())),
+            (patient_id, request.journey_type, Json(validated_answers.dict())),
         )
         row = cursor.fetchone()
         connection.commit()
@@ -116,9 +123,7 @@ def log_health_journey_entry(
 ):
     """
     Log an ongoing entry against the caller's health journey (e.g. today's
-    mood, pain level, or symptoms). Not wired into the UI yet -- see
-    health_journey_schema.sql for why this exists as a separate table
-    from the one-time setup answers.
+    mood, pain level, or symptoms). Not called from any screen yet.
     """
     connection = get_database_connection()
     try:

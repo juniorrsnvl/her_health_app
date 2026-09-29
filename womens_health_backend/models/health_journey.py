@@ -1,19 +1,24 @@
 """
 models/health_journey.py
 
-Pydantic request/response models for the health journey feature.
-Matches the fields collected in health_setup_screen.dart and
-journey_questions_screen.dart exactly, per journey type.
+Pydantic models for the health journey feature, matched field-for-field
+against what journey_questions_screen.dart actually asks (checked directly
+against the running file on 2026-09-29 -- not the original design, which
+had drifted).
 
-Each journey type gets its own typed "answers" model so the API actually
-validates what comes in (rather than accepting an arbitrary dict), while
-still storing as JSONB underneath -- see health_journey_schema.sql.
+Every field is optional free text, because every question in the screen is
+a plain TextField (buildQuestion()), even ones phrased as yes/no ("Do you
+have any pregnancy complications?"). That's the screen's own choice, not
+something to silently turn into a checkbox here.
+
+Two fields the original design assumed (pain_level, mood) don't exist
+anywhere in the rendered screen -- selectedPainLevel and selectedMood are
+declared in the Flutter state but never shown. They're left out here to
+match.
 """
 
-from datetime import date
-from typing import Literal, Optional, Union
-from pydantic import BaseModel, Field
-
+from typing import Literal, Optional
+from pydantic import BaseModel
 
 
 JourneyType = Literal[
@@ -26,68 +31,67 @@ JourneyType = Literal[
 
 
 class PregnancyCareAnswers(BaseModel):
-    due_date: Optional[date] = None
-    trimester: Optional[str] = None
-    risk_level: Optional[str] = None
-    doctor: Optional[str] = None
     weeks_pregnant: Optional[str] = None
-    symptoms: Optional[str] = None
-    concerns: Optional[str] = None
-    notes: Optional[str] = None
+    first_pregnancy: Optional[str] = None
+    had_antenatal_visit: Optional[str] = None
+    complications: Optional[str] = None
+    taking_vitamins: Optional[str] = None
+    due_date: Optional[str] = None
 
 
 class MenstrualHealthAnswers(BaseModel):
-    last_period: Optional[date] = None
-    cycle_length: int = 28
-    period_length: int = 5
-    irregular_periods: bool = False
-    severe_pain: bool = False
-    symptoms: Optional[str] = None
-    flow: Optional[str] = None
+    last_period: Optional[str] = None
+    cycle_length: Optional[str] = None
+    period_length: Optional[str] = None
+    cramps: Optional[str] = None
+    regular_periods: Optional[str] = None
+    birth_control: Optional[str] = None
 
 
 class PostpartumRecoveryAnswers(BaseModel):
-    baby_birth_date: Optional[date] = None
-    baby_age: Optional[str] = None
-    delivery_type: Optional[str] = None
-    breastfeeding: bool = False
-    recovery_concerns: Optional[str] = None
-    notes: Optional[str] = None
+    weeks_postpartum: Optional[str] = None
+    breastfeeding: Optional[str] = None
+    sleep_quality: Optional[str] = None
+    mood: Optional[str] = None
+    postpartum_checkup: Optional[str] = None
+    concerns: Optional[str] = None
 
 
 class GeneralHealthAnswers(BaseModel):
-    yearly_checkup: bool = False
-    pap_smear: bool = False
-    breast_exam: bool = False
-    health_goals: Optional[str] = None
-    health_concern: Optional[str] = None
     height: Optional[str] = None
     weight: Optional[str] = None
     exercise: Optional[str] = None
-    water: Optional[str] = None
+    water_intake: Optional[str] = None
+    sleep_hours: Optional[str] = None
+    health_concerns: Optional[str] = None
 
 
 class CosmeticGynecologyAnswers(BaseModel):
-    interest: Optional[str] = None
-    goal: Optional[str] = None
-    previous_procedure: Optional[str] = None
-    specialist: Optional[str] = None
+    improvement_goal: Optional[str] = None
+    previous_procedures: Optional[str] = None
+    consulted_specialist: Optional[str] = None
     expected_outcome: Optional[str] = None
-    questions: Optional[str] = None
 
 
-AnswersUnion = Union[
-    PregnancyCareAnswers,
-    MenstrualHealthAnswers,
-    PostpartumRecoveryAnswers,
-    GeneralHealthAnswers,
-    CosmeticGynecologyAnswers,
-]
+# journey_type -> the model that validates its answers. The router picks
+# the model explicitly from journey_type rather than asking Pydantic to
+# guess from a Union -- guessing was the original design's flaw, since
+# every field on every model was optional, so the wrong model could
+# silently "match" and quietly drop fields it didn't recognise.
+ANSWER_MODELS = {
+    "pregnancy_care": PregnancyCareAnswers,
+    "menstrual_health": MenstrualHealthAnswers,
+    "postpartum_recovery": PostpartumRecoveryAnswers,
+    "general_health": GeneralHealthAnswers,
+    "cosmetic_gynecology": CosmeticGynecologyAnswers,
+}
 
 
 class HealthJourneySetupRequest(BaseModel):
     journey_type: JourneyType
-    answers: AnswersUnion
+    # Raw dict, not a typed Union -- the router validates it against the
+    # correct model looked up from journey_type above.
+    answers: dict
 
 
 class HealthJourneyResponse(BaseModel):
@@ -100,10 +104,10 @@ class HealthJourneyResponse(BaseModel):
 
 
 class HealthJourneyEntryRequest(BaseModel):
-    entry_date: Optional[date] = None  # defaults to today if omitted
+    entry_date: Optional[str] = None  # defaults to today if omitted
     pain_level: Optional[str] = None
     mood: Optional[str] = None
-    data: dict = Field(default_factory=dict)
+    data: dict = {}
 
 
 class HealthJourneyEntryResponse(BaseModel):
