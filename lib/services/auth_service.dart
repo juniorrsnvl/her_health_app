@@ -59,6 +59,12 @@ class AuthService {
     DateTime? dateOfBirth,
     String? emergencyContactName,
     String? emergencyContactPhone,
+    String? address,
+    String? city,
+    String? bloodType,
+    List<String>? allergies,
+    List<String>? medicalConditions,
+    List<String>? currentMedications,
   }) async {
     final body = <String, dynamic>{
       'email': email,
@@ -83,6 +89,24 @@ class AuthService {
     if (emergencyContactPhone != null &&
         emergencyContactPhone.trim().isNotEmpty) {
       body['emergency_contact_phone'] = emergencyContactPhone.trim();
+    }
+    if (address != null && address.trim().isNotEmpty) {
+      body['address'] = address.trim();
+    }
+    if (city != null && city.trim().isNotEmpty) {
+      body['city'] = city.trim();
+    }
+    if (bloodType != null && bloodType.trim().isNotEmpty) {
+      body['blood_type'] = bloodType.trim();
+    }
+    if (allergies != null && allergies.isNotEmpty) {
+      body['allergies'] = allergies;
+    }
+    if (medicalConditions != null && medicalConditions.isNotEmpty) {
+      body['medical_conditions'] = medicalConditions;
+    }
+    if (currentMedications != null && currentMedications.isNotEmpty) {
+      body['current_medications'] = currentMedications;
     }
 
     return await _post('/auth/register', body);

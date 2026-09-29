@@ -297,6 +297,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  /// Turns a chip selection into the final list to send the backend:
+  /// "Other" is replaced by whatever was typed in its follow-up field
+  /// (or dropped if that field was left empty), every other selection
+  /// (including "None") is sent through as-is.
+  List<String> _finalizeSelection(
+    Set<String> selected,
+    TextEditingController otherController,
+  ) {
+    final result = <String>[];
+    for (final item in selected) {
+      if (item == 'Other') {
+        final custom = otherController.text.trim();
+        if (custom.isNotEmpty) {
+          result.add(custom);
+        }
+      } else {
+        result.add(item);
+      }
+    }
+    return result;
+  }
+
   Future<void> _handleCreateAccount() async {
     if (nameController.text.trim().isEmpty) {
       _showError('Please enter your full name.');
@@ -332,6 +354,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         dateOfBirth: selectedDob,
         emergencyContactName: emergencyNameController.text,
         emergencyContactPhone: emergencyPhoneController.text,
+        address: addressController.text,
+        city: cityController.text,
+        bloodType: selectedBloodType,
+        allergies: _finalizeSelection(selectedAllergies, allergyOtherController),
+        medicalConditions:
+            _finalizeSelection(selectedConditions, conditionOtherController),
+        currentMedications:
+            _finalizeSelection(selectedMedications, medicationOtherController),
       );
 
       if (!mounted) return;

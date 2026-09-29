@@ -1,9 +1,10 @@
 import random
 from datetime import date, datetime, timedelta
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
+from psycopg2.extras import Json
 from config.database import get_database_connection
 from utils.security import hash_password, verify_password, create_access_token
 
@@ -26,6 +27,18 @@ class RegisterRequest(BaseModel):
     date_of_birth: Optional[date] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
+
+    # Also optional, also only stored if a profile is being created
+    # (i.e. full_name was sent). "None" selected on the frontend is a
+    # real answer ("no allergies") and is sent through as the literal
+    # string "None" in the list, same as any other selection -- the
+    # backend doesn't treat it specially.
+    address: Optional[str] = None
+    city: Optional[str] = None
+    blood_type: Optional[str] = None
+    allergies: Optional[List[str]] = None
+    medical_conditions: Optional[List[str]] = None
+    current_medications: Optional[List[str]] = None
 
 
 class LoginRequest(BaseModel):
@@ -124,8 +137,10 @@ def register_user(user: RegisterRequest):
                 """
                 INSERT INTO patients
                 (user_id, first_name, last_name, phone, date_of_birth,
-                 emergency_contact_name, emergency_contact_phone)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                 emergency_contact_name, emergency_contact_phone,
+                 address, city, blood_type,
+                 allergies, medical_conditions, current_medications)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     new_user_id,
@@ -135,6 +150,12 @@ def register_user(user: RegisterRequest):
                     user.date_of_birth,
                     user.emergency_contact_name,
                     user.emergency_contact_phone,
+                    user.address,
+                    user.city,
+                    user.blood_type,
+                    Json(user.allergies) if user.allergies is not None else None,
+                    Json(user.medical_conditions) if user.medical_conditions is not None else None,
+                    Json(user.current_medications) if user.current_medications is not None else None,
                 )
             )
 
