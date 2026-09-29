@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'health_setup_screen.dart';
 import 'register_screen.dart';
 import 'email_verification_screen.dart';
+import 'chatbot_screen.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -36,10 +37,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
+      // If they've already set up a health journey, skip straight past
+      // journey selection and land where they actually left off. A
+      // brand-new patient (getExistingHealthJourney returns null) still
+      // goes through setup as before.
+      final existingJourney = await AuthService.getExistingHealthJourney();
+
+      if (!mounted) return;
+
       // pushReplacement so the back button doesn't return to the login form.
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HealthSetupScreen()),
+        MaterialPageRoute(
+          builder: (context) => existingJourney != null
+              ? const ChatbotScreen()
+              : const HealthSetupScreen(),
+        ),
       );
     } on AuthException catch (e) {
       if (e.isUnverified) {

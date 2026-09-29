@@ -296,6 +296,26 @@ class AuthService {
   }
 
   // ===========================================================
+  // Health journey
+  // ===========================================================
+
+  /// The patient's existing health journey (journey_type + answers), or
+  /// null if they haven't set one up yet. A 404 here is the normal case
+  /// for a brand-new patient, not an error -- everything else still
+  /// throws.
+  static Future<Map<String, dynamic>?> getExistingHealthJourney() async {
+    try {
+      final data = await _authorizedGetRaw('/health-journey/me');
+      return (data is Map<String, dynamic>) ? data : null;
+    } on AuthException catch (e) {
+      if (e.statusCode == 404) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  // ===========================================================
   // Chat (Nia)
   // ===========================================================
 
