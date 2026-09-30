@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'appointments_screen.dart';
+import 'messages_screen.dart';
 
 
 class ChatbotScreen extends StatefulWidget {
@@ -857,9 +858,21 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
 
 
-          drawerItem(
-            Icons.medical_services,
-            "Contact Doctor",
+          ListTile(
+            leading: const Icon(
+              Icons.medical_services,
+              color: Color(0xFF959B7D),
+            ),
+            title: const Text("Contact Doctor"),
+            onTap: () {
+              Navigator.pop(context); // close the drawer first
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MessagesScreen(),
+                ),
+              );
+            },
           ),
 
 

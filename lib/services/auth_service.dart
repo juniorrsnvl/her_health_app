@@ -393,4 +393,24 @@ class AuthService {
     final data = await _authorizedGetRaw('/chat/messages');
     return (data is List) ? data : [];
   }
+
+  // ===========================================================
+  // Messages (Contact Doctor)
+  // ===========================================================
+  //
+  // A real messaging thread with the practice's staff, separate from
+  // Nia. Staff-side (viewing/replying across patients) isn't wired into
+  // the admin portal yet -- these two methods cover the patient side
+  // only.
+
+  /// Sends a message into the patient's own thread with the practice.
+  static Future<void> sendDoctorMessage(String message) async {
+    await _authorizedPostRaw('/messages/send', {'message': message});
+  }
+
+  /// The patient's full message thread with the practice, oldest first.
+  static Future<List<dynamic>> getMyMessageThread() async {
+    final data = await _authorizedGetRaw('/messages/mine');
+    return (data is List) ? data : [];
+  }
 }
