@@ -340,6 +340,42 @@ class AuthService {
   }
 
   // ===========================================================
+  // Forgot password
+  // ===========================================================
+  //
+  // Neither of these calls is authorized -- there's no token yet at
+  // this point, since the whole reason we're here is the user can't
+  // log in.
+
+  /// Requests a reset code sent to 'email' or 'phone'. Returns a map
+  /// with the SIMULATED code (see note on register() above -- no real
+  /// email/SMS provider is connected yet) and, for the phone method,
+  /// the phone number to display it against.
+  static Future<Map<String, dynamic>> requestPasswordReset({
+    required String email,
+    required String method,
+  }) async {
+    return await _post('/auth/request-password-reset', {
+      'email': email,
+      'method': method,
+    });
+  }
+
+  /// Verifies the reset code and sets the new password. Throws an
+  /// AuthException (e.g. "Incorrect reset code.") on failure.
+  static Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    await _post('/auth/reset-password', {
+      'email': email,
+      'code': code,
+      'new_password': newPassword,
+    });
+  }
+
+  // ===========================================================
   // Chat (Nia)
   // ===========================================================
 

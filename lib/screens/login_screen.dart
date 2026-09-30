@@ -3,6 +3,7 @@ import 'health_setup_screen.dart';
 import 'register_screen.dart';
 import 'email_verification_screen.dart';
 import 'chatbot_screen.dart';
+import 'forgot_password_screen.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -218,7 +219,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           TextButton(
                             onPressed: () {
-                              // Forgot password backend later
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ForgotPasswordScreen(),
+                                ),
+                              );
                             },
                             child: const Text(
                               "Forgot Password?",

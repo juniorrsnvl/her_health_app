@@ -5,12 +5,20 @@ Backs chatbot_screen.dart. Every message the patient sends is saved,
 answered, and the answer is saved too -- so the conversation survives
 logging out and back in.
 
-Replies are rule-based (keyword matching), not a real AI. See
-generate_reply() below for exactly what to change when that's swapped
-out for a real provider -- it's the only function in this file that
-would need to change; the endpoints, the database, and the frontend all
-stay exactly the same shape.
+Replies now come from the Claude API when ANTHROPIC_API_KEY is set,
+using the patient's recent conversation history and their health journey
+(if they have one) as context, so Nia can actually reference what the
+patient told the app about themselves.
+
+If the key isn't set, or the API call fails for any reason (network
+issue, rate limit, bad key), this falls back to the original rule-based
+keyword matcher rather than erroring the whole request out. That keeps
+the chat working even with no key configured at all, which matters for
+running this locally without every teammate needing their own API key.
 """
+
+import os
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -19,6 +27,22 @@ from config.database import get_database_connection
 from utils.dependencies import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
+
+# The model used for Nia's replies. Haiku is the fast, inexpensive option
+# in the current Claude lineup -- appropriate for short supportive chat
+# replies rather than long-form reasoning.
+_CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+
+_SYSTEM_PROMPT = """You are Nia, the supportive AI assistant inside Her Health, a women's health app tied to a real doctor's practice.
+
+Your role:
+- Be warm, brief, and genuinely supportive -- this is a chat bubble, not an essay. Two to four short sentences is usually right.
+- You can discuss menstrual health, pregnancy, postpartum recovery, general women's wellness, and cosmetic gynecology at a general, educational level.
+- You are NOT a doctor. Never diagnose, never tell someone what condition they have, never recommend a specific medication or dosage.
+- For anything that sounds urgent, severe, or persistent, clearly encourage booking an appointment (the app has a real Appointments feature) or seeking care directly, rather than trying to resolve it yourself.
+- If the patient's health journey context is provided below, you may refer to it naturally when it's relevant, but don't force it into every reply.
+- Keep a gentle, encouraging tone. Occasional use of soft emoji (🌸🌿💛) fits the app's style, but don't overdo it.
+"""
 
 
 class ChatMessageRequest(BaseModel):
@@ -43,8 +67,47 @@ def _get_patient_id(cursor, user_id: int) -> int:
     return row["id"]
 
 
-# keyword -> response. Checked in order; the first match wins, so put more
-# specific topics before general ones if that ever matters.
+def _get_recent_history(cursor, patient_id: int, limit: int = 12) -> list[dict]:
+    """Most recent messages, oldest first (the order Claude expects)."""
+    cursor.execute(
+        """
+        SELECT sender, message
+        FROM chat_messages
+        WHERE patient_id = %s
+        ORDER BY created_at DESC, id DESC
+        LIMIT %s
+        """,
+        (patient_id, limit),
+    )
+    rows = cursor.fetchall()
+    return list(reversed(rows))
+
+
+def _get_journey_context(cursor, patient_id: int) -> Optional[str]:
+    """
+    A short plain-text summary of the patient's health journey, if they
+    have one, to give Claude relevant context. Returns None if they
+    haven't set one up -- the prompt just omits this section entirely.
+    """
+    cursor.execute(
+        "SELECT journey_type, answers FROM health_journeys WHERE patient_id = %s",
+        (patient_id,),
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+
+    answers_text = ", ".join(
+        f"{key}: {value}" for key, value in row["answers"].items() if value
+    )
+    return (
+        f"This patient's selected health journey is '{row['journey_type']}'. "
+        f"Their onboarding answers: {answers_text or 'none provided'}."
+    )
+
+
+# keyword -> response. This is the fallback used when the AI is
+# unavailable -- kept exactly as before, unchanged.
 _RULES = [
     (["period", "menstru", "cycle", "cramp"],
      "Tracking your cycle is a great step \U0001F338. Irregular periods, "
@@ -127,18 +190,79 @@ _FALLBACK = (
 )
 
 
-def generate_reply(message: str) -> str:
-    """
-    Rule-based reply, matched by keyword. THIS is the entire surface that
-    needs to change to swap in a real AI provider (e.g. the Claude API)
-    later -- replace this function's body with a call to that provider,
-    and nothing else in this file needs to move.
-    """
+def _generate_rule_based_reply(message: str) -> str:
+    """The original keyword-matched reply. Used as the fallback whenever
+    the AI path isn't available."""
     lowered = message.lower()
     for keywords, response in _RULES:
         if any(keyword in lowered for keyword in keywords):
             return response
     return _FALLBACK
+
+
+def _generate_ai_reply(
+    history: list[dict],
+    journey_context: Optional[str],
+) -> Optional[str]:
+    """
+    Calls the Claude API with the conversation so far. Returns None (not
+    an exception) if there's no API key configured or the call fails for
+    any reason -- the caller falls back to the rule-based reply in
+    either case, so a missing key or a network hiccup never breaks the
+    chat.
+    """
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        from anthropic import Anthropic
+
+        client = Anthropic(api_key=api_key)
+
+        system = _SYSTEM_PROMPT
+        if journey_context:
+            system += f"\n\nPatient context: {journey_context}"
+
+        claude_messages = [
+            {
+                "role": "user" if m["sender"] == "user" else "assistant",
+                "content": m["message"],
+            }
+            for m in history
+        ]
+
+        response = client.messages.create(
+            model=_CLAUDE_MODEL,
+            max_tokens=300,
+            system=system,
+            messages=claude_messages,
+        )
+
+    except Exception as e:
+        print(f"AI REPLY FAILED: {type(e).__name__}: {e}")
+        return None
+
+
+def generate_reply(
+    cursor,
+    patient_id: int,
+    latest_message: str,
+) -> str:
+    """
+    THE single entry point the endpoint calls for a reply. Tries the real
+    AI first (with conversation history and health journey context), and
+    falls back to keyword matching on just the latest message if the AI
+    path isn't available for any reason.
+    """
+    history = _get_recent_history(cursor, patient_id)
+    journey_context = _get_journey_context(cursor, patient_id)
+
+    ai_reply = _generate_ai_reply(history, journey_context)
+    if ai_reply:
+        return ai_reply
+
+    return _generate_rule_based_reply(latest_message)
 
 
 @router.post("/message", response_model=list[ChatMessageResponse])
@@ -165,8 +289,9 @@ def send_message(
             (patient_id, request.message),
         )
         user_row = cursor.fetchone()
+        connection.commit()
 
-        reply_text = generate_reply(request.message)
+        reply_text = generate_reply(cursor, patient_id, request.message)
 
         cursor.execute(
             """

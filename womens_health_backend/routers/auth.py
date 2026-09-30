@@ -56,6 +56,17 @@ class ResendCodesRequest(BaseModel):
     email: EmailStr
 
 
+class RequestPasswordResetRequest(BaseModel):
+    email: EmailStr
+    method: Literal["email", "phone"]
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+
 def _mask_phone(phone) -> str:
     """Shows only the last 4 digits, e.g. '******1961'."""
     if not phone:
@@ -382,6 +393,115 @@ def login_user(user: LoginRequest):
             "message": "Login successful.",
             "access_token": token,
             "token_type": "bearer"
+        }
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@router.post("/request-password-reset")
+def request_password_reset(request: RequestPasswordResetRequest):
+    """
+    Generates a single reset code and stores it for whichever channel
+    the user picked (email or phone) -- only one code, unlike
+    registration verification, since the user is choosing one delivery
+    method up front rather than getting both.
+    """
+    connection = get_database_connection()
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT id, phone FROM users WHERE email = %s",
+            (request.email,)
+        )
+        existing_user = cursor.fetchone()
+
+        if not existing_user:
+            raise HTTPException(
+                status_code=404,
+                detail="No account found for this email."
+            )
+
+        reset_code = _generate_code()
+        expires_at = datetime.utcnow() + timedelta(minutes=10)
+
+        cursor.execute(
+            """
+            UPDATE users
+            SET reset_code = %s,
+                reset_code_expires_at = %s
+            WHERE id = %s
+            """,
+            (reset_code, expires_at, existing_user["id"])
+        )
+
+        connection.commit()
+
+        return {
+            "message": f"Password reset code generated for {request.method}.",
+            "phone": existing_user["phone"],
+            # SIMULATED SENDING -- see the note on register_user for why
+            # this is returned directly instead of actually being sent.
+            "reset_code": reset_code,
+        }
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest):
+    """Checks the reset code and, if valid, sets the new password."""
+    connection = get_database_connection()
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT id, reset_code, reset_code_expires_at FROM users WHERE email = %s",
+            (request.email,)
+        )
+        existing_user = cursor.fetchone()
+
+        if not existing_user:
+            raise HTTPException(
+                status_code=404,
+                detail="No account found for this email."
+            )
+
+        expires_at = existing_user["reset_code_expires_at"]
+
+        if expires_at is None or datetime.utcnow() > expires_at:
+            raise HTTPException(
+                status_code=400,
+                detail="This reset code has expired. Please request a new one."
+            )
+
+        if request.code != existing_user["reset_code"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Incorrect reset code."
+            )
+
+        new_password_hash = hash_password(request.new_password)
+
+        cursor.execute(
+            """
+            UPDATE users
+            SET password_hash = %s,
+                reset_code = NULL,
+                reset_code_expires_at = NULL
+            WHERE id = %s
+            """,
+            (new_password_hash, existing_user["id"])
+        )
+
+        connection.commit()
+
+        return {
+            "message": "Password reset successfully. You can now log in with your new password."
         }
 
     finally:
