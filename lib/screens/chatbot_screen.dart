@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'appointments_screen.dart';
 import 'messages_screen.dart';
+import 'health_profile_screen.dart';
+import 'settings_screen.dart';
 
 
 class ChatbotScreen extends StatefulWidget {
@@ -879,9 +881,21 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
 
 
-          drawerItem(
-            Icons.favorite,
-            "Health Profile",
+          ListTile(
+            leading: const Icon(
+              Icons.favorite,
+              color: Color(0xFF959B7D),
+            ),
+            title: const Text("Health Profile"),
+            onTap: () {
+              Navigator.pop(context); // close the drawer first
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HealthProfileScreen(),
+                ),
+              );
+            },
           ),
 
 
@@ -906,9 +920,21 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
 
 
-          drawerItem(
-            Icons.settings,
-            "Settings",
+          ListTile(
+            leading: const Icon(
+              Icons.settings,
+              color: Color(0xFF959B7D),
+            ),
+            title: const Text("Settings"),
+            onTap: () {
+              Navigator.pop(context); // close the drawer first
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
           ),
 
 

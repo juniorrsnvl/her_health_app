@@ -42,8 +42,13 @@ class AuthService {
 
   static bool get isLoggedIn => accessToken != null;
 
+  /// The logged-in patient's first name, fetched right after login, for
+  /// greetings like "Welcome, Ada". Null if unknown.
+  static String? firstName;
+
   static void logout() {
     accessToken = null;
+    firstName = null;
   }
 
   /// Registers a new account. On success, returns a map containing
@@ -158,6 +163,17 @@ class AuthService {
     });
     final token = response['access_token'] as String;
     accessToken = token;
+
+    // Best-effort: fetch the first name for greetings. A failure here
+    // must never block a successful login.
+    try {
+      final me = await getMe();
+      final profile = me['profile'];
+      firstName = (profile is Map) ? profile['first_name'] as String? : null;
+    } catch (_) {
+      firstName = null;
+    }
+
     return token;
   }
 
@@ -412,5 +428,52 @@ class AuthService {
   static Future<List<dynamic>> getMyMessageThread() async {
     final data = await _authorizedGetRaw('/messages/mine');
     return (data is List) ? data : [];
+  }
+
+  // ===========================================================
+  // Own profile (Health Profile screen)
+  // ===========================================================
+
+  /// Account details plus the patient profile ('profile' is null for
+  /// accounts without one).
+  static Future<Map<String, dynamic>> getMe() async {
+    final data = await _authorizedGetRaw('/auth/me');
+    return (data is Map<String, dynamic>) ? data : {};
+  }
+
+  /// Saves edited profile fields. Only the keys included are changed.
+  static Future<void> updateProfile(Map<String, dynamic> fields) async {
+    await _authorizedPutRaw('/auth/me/profile', fields);
+    if (fields['first_name'] is String) {
+      firstName = fields['first_name'] as String;
+    }
+  }
+
+  static Future<dynamic> _authorizedPutRaw(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final token = accessToken;
+    if (token == null) {
+      throw AuthException('You need to be logged in to do that.');
+    }
+
+    late http.Response response;
+    try {
+      response = await http.put(
+        Uri.parse('$baseUrl$path'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+    } catch (e) {
+      throw AuthException(
+        'Could not reach the server. Check your connection and try again.',
+      );
+    }
+
+    return _handleResponseRaw(response);
   }
 }

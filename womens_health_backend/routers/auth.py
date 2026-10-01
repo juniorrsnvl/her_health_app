@@ -2,11 +2,12 @@ import random
 from datetime import date, datetime, timedelta
 from typing import List, Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from psycopg2.extras import Json
 from config.database import get_database_connection
 from utils.security import hash_password, verify_password, create_access_token
+from utils.dependencies import get_current_user
 
 
 router = APIRouter(
@@ -503,6 +504,144 @@ def reset_password(request: ResetPasswordRequest):
         return {
             "message": "Password reset successfully. You can now log in with your new password."
         }
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
+# ===========================================================
+# Current user's own profile (Health Profile screen)
+# ===========================================================
+
+class UpdateProfileRequest(BaseModel):
+    # Every field optional: only the fields actually sent are updated.
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    blood_type: Optional[str] = None
+    allergies: Optional[List[str]] = None
+    medical_conditions: Optional[List[str]] = None
+    current_medications: Optional[List[str]] = None
+
+
+# Whitelist of patient columns that can be edited. Column names in the
+# UPDATE below come only from this list, never from the request, so the
+# dynamic SQL can't be injected into.
+_PROFILE_COLUMNS = [
+    "first_name", "last_name", "date_of_birth",
+    "emergency_contact_name", "emergency_contact_phone",
+    "address", "city", "blood_type",
+    "allergies", "medical_conditions", "current_medications",
+]
+_JSON_COLUMNS = {"allergies", "medical_conditions", "current_medications"}
+
+
+@router.get("/me")
+def get_me(current_user: dict = Depends(get_current_user)):
+    """The logged-in user's account details plus their patient profile
+    (profile is null for accounts without one, e.g. staff)."""
+    connection = get_database_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            "SELECT email, phone, role_id FROM users WHERE id = %s",
+            (current_user["user_id"],)
+        )
+        user = cursor.fetchone()
+
+        if not user:
+            raise HTTPException(status_code=404, detail="Account not found.")
+
+        cursor.execute(
+            """
+            SELECT first_name, last_name, date_of_birth,
+                   emergency_contact_name, emergency_contact_phone,
+                   address, city, blood_type,
+                   allergies, medical_conditions, current_medications
+            FROM patients
+            WHERE user_id = %s
+            """,
+            (current_user["user_id"],)
+        )
+        row = cursor.fetchone()
+
+        profile = None
+        if row:
+            profile = dict(row)
+            if profile.get("date_of_birth") is not None:
+                profile["date_of_birth"] = str(profile["date_of_birth"])
+
+        return {
+            "email": user["email"],
+            "phone": user["phone"],
+            "role_id": user["role_id"],
+            "profile": profile,
+        }
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@router.put("/me/profile")
+def update_my_profile(
+    request: UpdateProfileRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Updates only the profile fields included in the request."""
+    updates = request.dict(exclude_unset=True)
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="Nothing to update.")
+
+    if "first_name" in updates and not (updates["first_name"] or "").strip():
+        raise HTTPException(status_code=400, detail="First name can't be empty.")
+
+    # last_name is NOT NULL in the table; store a blank rather than NULL.
+    if "last_name" in updates and updates["last_name"] is None:
+        updates["last_name"] = ""
+
+    connection = get_database_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            "SELECT id FROM patients WHERE user_id = %s",
+            (current_user["user_id"],)
+        )
+        patient = cursor.fetchone()
+
+        if not patient:
+            raise HTTPException(
+                status_code=404,
+                detail="No patient profile found for this account."
+            )
+
+        set_parts = []
+        values = []
+        for column in _PROFILE_COLUMNS:
+            if column in updates:
+                value = updates[column]
+                if column in _JSON_COLUMNS and value is not None:
+                    value = Json(value)
+                set_parts.append(f"{column} = %s")
+                values.append(value)
+
+        values.append(patient["id"])
+
+        cursor.execute(
+            f"UPDATE patients SET {', '.join(set_parts)} WHERE id = %s",
+            tuple(values)
+        )
+        connection.commit()
+
+        return {"message": "Profile updated."}
 
     finally:
         cursor.close()

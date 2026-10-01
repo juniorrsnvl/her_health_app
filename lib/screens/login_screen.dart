@@ -142,11 +142,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 10),
 
-                    // Still a placeholder -- the login response doesn't
-                    // include the user's name yet (no patient profile is
-                    // created at registration).
+                    // Nobody is identified yet on the login screen, so this
+                    // is a general greeting rather than a name.
                     const Text(
-                      "Welcome back, Name ❤️",
+                      "Good to see you again ❤️",
                       style: TextStyle(
                         fontSize: 18,
                         color: Color(0xFF959B7D),
