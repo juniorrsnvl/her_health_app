@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'login_screen.dart';
 import 'patients_screen.dart';
+import 'messages_inbox_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -121,6 +122,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             },
             tooltip: 'Patients',
+          ),
+          IconButton(
+            icon: const Icon(Icons.message),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MessagesInboxScreen()),
+              );
+            },
+            tooltip: 'Messages',
           ),
           IconButton(
             icon: const Icon(Icons.logout),

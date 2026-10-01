@@ -86,6 +86,22 @@ class ApiService {
     );
   }
 
+  /// Authenticated POST request with a JSON body.
+  static Future<http.Response> authorizedPost(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final token = await getToken();
+    return http.post(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+  }
+
   static Map<String, dynamic>? _tryDecode(String body) {
     try {
       return jsonDecode(body) as Map<String, dynamic>;
