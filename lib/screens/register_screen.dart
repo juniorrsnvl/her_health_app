@@ -375,8 +375,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             // SIMULATED: these are the real codes the backend generated,
             // shown here because no real email/SMS provider is connected
             // yet. See auth.py's register_user for the full explanation.
-            simulatedEmailCode: result['email_code'] as String,
-            simulatedPhoneCode: result['phone_code'] as String,
+            simulatedEmailCode: result['email_code'] as String?,
+            simulatedPhoneCode: result['phone_code'] as String?,
           ),
         ),
       );

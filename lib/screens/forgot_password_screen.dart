@@ -285,9 +285,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         if (_codeRequested) ...[
                           const SizedBox(height: 20),
 
-                          // Dev-mode banner -- see the equivalent note in
-                          // email_verification_screen.dart. Remove once a
-                          // real email/SMS provider is connected.
+                          // Dev-mode banner: only shown when the backend runs
+                          // with DEV_MODE=true and actually returned a code.
+                          if (_simulatedCode != null)
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(14),

@@ -11,8 +11,9 @@ class EmailVerificationScreen extends StatefulWidget {
   /// labelled dev-mode banner) purely so the flow can be tested end to
   /// end. Remove this display, and the fields that carry it, once a real
   /// provider is wired up in the backend.
-  final String simulatedEmailCode;
-  final String simulatedPhoneCode;
+  // Null unless the backend runs with DEV_MODE=true.
+  final String? simulatedEmailCode;
+  final String? simulatedPhoneCode;
 
   const EmailVerificationScreen({
     super.key,
@@ -183,8 +184,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       final result = await AuthService.resendCodes(email: widget.email);
       if (!mounted) return;
       setState(() {
-        _currentSimulatedEmailCode = result['email_code'] as String;
-        _currentSimulatedPhoneCode = result['phone_code'] as String;
+        _currentSimulatedEmailCode = result['email_code'] as String?;
+        _currentSimulatedPhoneCode = result['phone_code'] as String?;
         _clearCodeBoxes();
       });
       _showMessage('New codes generated.');
@@ -249,9 +250,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Dev-mode banner: shows the simulated code for whichever
-                  // method is currently selected. Remove this whole
-                  // container once real sending is wired up.
+                  // Dev-mode banner: only shown when the backend runs with
+                  // DEV_MODE=true and actually returned a code.
+                  if (_currentSimulatedCode.isNotEmpty)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),

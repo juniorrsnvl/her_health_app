@@ -90,8 +90,8 @@ class _LoginScreenState extends State<LoginScreen> {
             email: email,
             phone: (result['phone'] as String?) ?? '',
             // SIMULATED codes -- see auth.py's register_user for details.
-            simulatedEmailCode: result['email_code'] as String,
-            simulatedPhoneCode: result['phone_code'] as String,
+            simulatedEmailCode: result['email_code'] as String?,
+            simulatedPhoneCode: result['phone_code'] as String?,
           ),
         ),
       );

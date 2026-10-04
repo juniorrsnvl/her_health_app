@@ -1,4 +1,6 @@
+import os
 import random
+import time
 from datetime import date, datetime, timedelta
 from typing import List, Literal, Optional
 
@@ -83,6 +85,55 @@ def _split_name(full_name: str):
     first = parts[0] if parts else ""
     last = parts[1] if len(parts) > 1 else ""
     return first, last
+
+
+# ===========================================================
+# Security settings
+# ===========================================================
+
+def _dev_mode() -> bool:
+    """
+    DEV_MODE=true in .env makes verification and reset codes come back in
+    API responses, so the on-screen dev banner works without a real
+    email/SMS provider. Anything else -- including leaving it out -- is
+    the safe default: codes are never returned.
+
+    Read on every call (not at import) so .env changes apply on restart
+    without depending on import order.
+    """
+    return os.getenv("DEV_MODE", "false").strip().lower() == "true"
+
+
+# Attempt limiting. Kept in memory: it resets when the server restarts
+# and only covers a single server process -- fine for this project, but a
+# multi-server deployment would need a shared store (e.g. Redis).
+_MAX_ATTEMPTS = 5
+_LOCKOUT_SECONDS = 15 * 60
+_failed_attempts: dict = {}
+
+
+def _too_many_attempts(key: str) -> bool:
+    entry = _failed_attempts.get(key)
+    if not entry:
+        return False
+    count, first_failure = entry
+    if time.time() - first_failure > _LOCKOUT_SECONDS:
+        _failed_attempts.pop(key, None)
+        return False
+    return count >= _MAX_ATTEMPTS
+
+
+def _record_failure(key: str) -> int:
+    now = time.time()
+    count, first_failure = _failed_attempts.get(key, (0, now))
+    if now - first_failure > _LOCKOUT_SECONDS:
+        count, first_failure = 0, now
+    _failed_attempts[key] = (count + 1, first_failure)
+    return count + 1
+
+
+def _clear_failures(key: str):
+    _failed_attempts.pop(key, None)
 
 
 def _generate_code() -> str:
@@ -175,16 +226,18 @@ def register_user(user: RegisterRequest):
         # created together or not at all.
         connection.commit()
 
-        return {
+        _clear_failures(f"verify:{user.email.lower()}")
+
+        response = {
             "message": "Account created successfully. Verification codes generated.",
-            # SIMULATED SENDING: these codes would normally go out via an
-            # email provider and an SMS provider. No such provider is
-            # connected yet, so they're returned here directly for the
-            # frontend to display on-screen during development. The user
-            # only needs to verify ONE of the two -- their choice.
-            "email_code": email_code,
-            "phone_code": phone_code,
         }
+        # SIMULATED SENDING: with no email/SMS provider connected, codes
+        # are only returned in DEV_MODE so the on-screen banner can show
+        # them. Never returned otherwise.
+        if _dev_mode():
+            response["email_code"] = email_code
+            response["phone_code"] = phone_code
+        return response
 
     finally:
         cursor.close()
@@ -237,11 +290,33 @@ def verify_user(request: VerifyRequest):
                 detail="This verification code has expired. Please request a new one."
             )
 
+        verify_key = f"verify:{request.email.lower()}"
+
         if request.code != stored_code:
+            if _record_failure(verify_key) >= _MAX_ATTEMPTS:
+                # Too many wrong guesses: destroy both codes so they can't
+                # be brute-forced. A new code must be requested.
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET email_code = NULL, email_code_expires_at = NULL,
+                        phone_code = NULL, phone_code_expires_at = NULL
+                    WHERE id = %s
+                    """,
+                    (existing_user["id"],)
+                )
+                connection.commit()
+                _clear_failures(verify_key)
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many incorrect codes. Please request a new code."
+                )
             raise HTTPException(
                 status_code=400,
                 detail="Incorrect verification code."
             )
+
+        _clear_failures(verify_key)
 
         if request.method == "email":
             cursor.execute(
@@ -315,13 +390,17 @@ def resend_codes(request: ResendCodesRequest):
 
         connection.commit()
 
-        return {
+        _clear_failures(f"verify:{request.email.lower()}")
+
+        response = {
             "message": "New verification codes generated.",
             "phone": _mask_phone(existing_user["phone"]),
-            # SIMULATED SENDING -- see note in register_user above.
-            "email_code": email_code,
-            "phone_code": phone_code,
         }
+        # SIMULATED SENDING -- see note in register_user above.
+        if _dev_mode():
+            response["email_code"] = email_code
+            response["phone_code"] = phone_code
+        return response
 
     finally:
         cursor.close()
@@ -330,6 +409,14 @@ def resend_codes(request: ResendCodesRequest):
 
 @router.post("/login")
 def login_user(user: LoginRequest):
+
+    login_key = f"login:{user.email.lower()}"
+
+    if _too_many_attempts(login_key):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed login attempts. Please try again in 15 minutes."
+        )
 
     connection = get_database_connection()
     cursor = connection.cursor(dictionary=True)
@@ -365,6 +452,7 @@ def login_user(user: LoginRequest):
         )
 
         if not password_correct:
+            _record_failure(login_key)
             raise HTTPException(
                 status_code=401,
                 detail="Invalid email or password."
@@ -384,6 +472,8 @@ def login_user(user: LoginRequest):
                     status_code=403,
                     detail="Please verify your email or phone number before logging in."
                 )
+
+        _clear_failures(login_key)
 
         token = create_access_token(
             existing_user["id"],
@@ -420,10 +510,17 @@ def request_password_reset(request: RequestPasswordResetRequest):
         existing_user = cursor.fetchone()
 
         if not existing_user:
-            raise HTTPException(
-                status_code=404,
-                detail="No account found for this email."
-            )
+            if _dev_mode():
+                raise HTTPException(
+                    status_code=404,
+                    detail="No account found for this email."
+                )
+            # Outside dev mode, don't reveal whether an account exists:
+            # give the same answer either way.
+            return {
+                "message": "If an account exists for this email, a reset code has been sent.",
+                "phone": "",
+            }
 
         reset_code = _generate_code()
         expires_at = datetime.utcnow() + timedelta(minutes=10)
@@ -440,13 +537,18 @@ def request_password_reset(request: RequestPasswordResetRequest):
 
         connection.commit()
 
-        return {
-            "message": f"Password reset code generated for {request.method}.",
-            "phone": existing_user["phone"],
-            # SIMULATED SENDING -- see the note on register_user for why
-            # this is returned directly instead of actually being sent.
-            "reset_code": reset_code,
+        _clear_failures(f"reset:{request.email.lower()}")
+
+        response = {
+            "message": "If an account exists for this email, a reset code has been sent.",
+            # Masked: this endpoint needs no login, so it must never hand
+            # out someone's full phone number.
+            "phone": _mask_phone(existing_user["phone"]),
         }
+        # SIMULATED SENDING -- only in DEV_MODE, see register_user.
+        if _dev_mode():
+            response["reset_code"] = reset_code
+        return response
 
     finally:
         cursor.close()
@@ -480,11 +582,30 @@ def reset_password(request: ResetPasswordRequest):
                 detail="This reset code has expired. Please request a new one."
             )
 
+        reset_key = f"reset:{request.email.lower()}"
+
         if request.code != existing_user["reset_code"]:
+            if _record_failure(reset_key) >= _MAX_ATTEMPTS:
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET reset_code = NULL, reset_code_expires_at = NULL
+                    WHERE id = %s
+                    """,
+                    (existing_user["id"],)
+                )
+                connection.commit()
+                _clear_failures(reset_key)
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many incorrect codes. Please request a new reset code."
+                )
             raise HTTPException(
                 status_code=400,
                 detail="Incorrect reset code."
             )
+
+        _clear_failures(reset_key)
 
         new_password_hash = hash_password(request.new_password)
 
