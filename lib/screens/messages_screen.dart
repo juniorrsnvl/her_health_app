@@ -138,6 +138,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 ],
               ),
             ),
+            DA.emergencyNotice(),
             Expanded(
               child: RefreshIndicator(
                 color: DA.rose,

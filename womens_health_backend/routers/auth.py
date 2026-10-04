@@ -43,6 +43,9 @@ class RegisterRequest(BaseModel):
     medical_conditions: Optional[List[str]] = None
     current_medications: Optional[List[str]] = None
 
+    # POPIA consent: registration is refused unless this is true.
+    accepted_privacy: bool = False
+
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -90,6 +93,11 @@ def _split_name(full_name: str):
 # ===========================================================
 # Security settings
 # ===========================================================
+
+# Version of the privacy notice patients accept at registration. Change it
+# together with kPrivacyNoticeVersion in lib/screens/privacy_notice.dart.
+PRIVACY_NOTICE_VERSION = "draft-2026-10"
+
 
 def _dev_mode() -> bool:
     """
@@ -144,6 +152,12 @@ def _generate_code() -> str:
 @router.post("/register")
 def register_user(user: RegisterRequest):
 
+    if not user.accepted_privacy:
+        raise HTTPException(
+            status_code=400,
+            detail="Please read and accept the privacy notice to create an account."
+        )
+
     connection = get_database_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -172,8 +186,9 @@ def register_user(user: RegisterRequest):
             INSERT INTO users
             (role_id, email, phone, password_hash, is_verified, is_active,
              email_code, email_code_expires_at,
-             phone_code, phone_code_expires_at, is_phone_verified)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             phone_code, phone_code_expires_at, is_phone_verified,
+             privacy_accepted_at, privacy_version)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
             (
@@ -188,6 +203,8 @@ def register_user(user: RegisterRequest):
                 phone_code,
                 expires_at,
                 False,
+                datetime.utcnow(),
+                PRIVACY_NOTICE_VERSION,
             )
         )
 

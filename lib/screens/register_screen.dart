@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'email_verification_screen.dart';
 import '../services/auth_service.dart';
 import '../theme/design_a.dart';
+import 'privacy_notice.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -44,6 +45,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       TextEditingController();
 
   bool _isSubmitting = false;
+
+  // The patient must accept the privacy notice to register (POPIA consent).
+  bool _acceptedPrivacy = false;
 
   static const List<String> bloodTypes = [
     'A+',
@@ -318,6 +322,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    if (!_acceptedPrivacy) {
+      _showError('Please read and accept the privacy notice to create your account.');
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
@@ -339,6 +348,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _finalizeSelection(selectedConditions, conditionOtherController),
         currentMedications:
             _finalizeSelection(selectedMedications, medicationOtherController),
+        acceptedPrivacy: _acceptedPrivacy,
       );
 
       if (!mounted) return;
@@ -438,6 +448,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     otherController: medicationOtherController,
                   ),
 
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(4, 6, 12, 6),
+                    decoration: DA.card(
+                      color: _acceptedPrivacy ? DA.blush : DA.surface,
+                      edge: _acceptedPrivacy ? DA.rose : DA.border,
+                      radius: 16,
+                    ),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: _acceptedPrivacy,
+                          activeColor: DA.rose,
+                          side: const BorderSide(color: Color(0xFFC9BDB8), width: 2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          onChanged: (value) {
+                            setState(() {
+                              _acceptedPrivacy = value ?? false;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text('I have read and agree to the ', style: DA.body(14)),
+                              InkWell(
+                                onTap: () => showPrivacyNotice(context),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Text(
+                                    'privacy notice',
+                                    style: DA.body(14, color: DA.rose, weight: FontWeight.w700)
+                                        .copyWith(decoration: TextDecoration.underline),
+                                  ),
+                                ),
+                              ),
+                              Text('.', style: DA.body(14)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     style: DA.primary(),

@@ -110,4 +110,29 @@ class DA {
     width: 22,
     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
   );
+
+  /// Always-visible safety line for Nia and Contact Doctor.
+  static Widget emergencyNotice() => Semantics(
+        container: true,
+        label: 'Not for emergencies. Call 10177 for an ambulance, or 112 from a cellphone.',
+        child: ExcludeSemantics(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: pendingBg,
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, size: 18, color: pendingInk),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Not for emergencies. Call 10177 (ambulance) or 112 from a cellphone.',
+                    style: body(13, color: pendingInk, weight: FontWeight.w700, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }

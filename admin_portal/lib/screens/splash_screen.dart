@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'welcome_screen.dart';
+import 'login_screen.dart';
 import '../services/api_service.dart';
 import 'dashboard_screen.dart';
 import '../theme/design_a.dart';
@@ -30,7 +30,9 @@ class _SplashScreenState extends State<SplashScreen> {
         context,
         MaterialPageRoute(
           builder: (context) =>
-              isLoggedIn ? const DashboardScreen() : const WelcomeScreen(),
+              // Staff accounts are created by the practice, never from a public
+              // page: not logged in -> straight to Log in.
+              isLoggedIn ? const DashboardScreen() : const LoginScreen(),
         ),
       );
     });

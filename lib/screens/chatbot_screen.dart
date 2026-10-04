@@ -187,6 +187,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
             ),
 
+            DA.emergencyNotice(),
+
             if (_isLoadingHistory)
               const LinearProgressIndicator(
                 minHeight: 2,

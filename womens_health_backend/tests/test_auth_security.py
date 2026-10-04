@@ -26,6 +26,7 @@ class FakeDB:
 
     def __init__(self):
         self.users = {}
+        self.inserted_users = []   # parameters of every INSERT INTO users
 
     def add_user(self, email, password, role_id=1, verified=True, phone="0698691961"):
         self.users[email] = {
@@ -57,7 +58,10 @@ class _Cursor:
 
     def execute(self, sql, params=()):
         s = " ".join(sql.split()).lower()
-        if s.startswith("select") and "from users where email" in s:
+        if s.startswith("insert into users"):
+            self.db.inserted_users.append(params)
+            self._result = {"id": 1000 + len(self.db.inserted_users)}
+        elif s.startswith("select") and "from users where email" in s:
             u = self.db.users.get(params[0])
             self._result = dict(u) if u else None
         elif s.startswith("update users set reset_code = %s"):
@@ -228,3 +232,29 @@ def test_expired_reset_code_is_rejected(setup, monkeypatch):
                     json={"email": "ada@test.com", "code": code, "new_password": "x"})
     assert r.status_code == 400
     assert "expired" in r.json()["detail"]
+
+
+# ---------------------------------------------------------------- privacy consent
+
+def _register(client, accepted):
+    return client.post("/auth/register", json={
+        "email": "new@test.com", "phone": "0711111111", "password": "Passw0rd!",
+        "accepted_privacy": accepted,
+    })
+
+
+def test_registration_is_refused_without_privacy_consent(setup):
+    client, db = setup
+    r = _register(client, False)
+    assert r.status_code == 400
+    assert "privacy notice" in r.json()["detail"]
+    assert db.inserted_users == []          # nothing was saved
+
+
+def test_registration_records_when_and_which_notice_was_accepted(setup):
+    client, db = setup
+    r = _register(client, True)
+    assert r.status_code == 200
+    params = db.inserted_users[0]
+    assert params[-1] == auth.PRIVACY_NOTICE_VERSION   # which notice
+    assert params[-2] is not None                      # when it was accepted

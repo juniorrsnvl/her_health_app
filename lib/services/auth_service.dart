@@ -119,11 +119,13 @@ class AuthService {
     List<String>? allergies,
     List<String>? medicalConditions,
     List<String>? currentMedications,
+    bool acceptedPrivacy = false,
   }) async {
     final body = <String, dynamic>{
       'email': email,
       'phone': phone,
       'password': password,
+      'accepted_privacy': acceptedPrivacy,
     };
 
     // Optional profile details -- only sent when filled in. When a name is
