@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict JbANtcdMLqqr9nG5pKbwz4faioJoffzlK51a3oTII3I25jv3yhv7s76xWg9cUCs
+\restrict IAMpSkxP3gSCuqMpA7f14ivFiwHL986KUJgejiayeg0haBgX5curtVrEQa7RFu2
 
 -- Dumped from database version 18.6 (Postgres.app)
 -- Dumped by pg_dump version 18.6 (Postgres.app)
@@ -424,7 +424,9 @@ CREATE TABLE public.users (
     phone_code_expires_at timestamp without time zone,
     is_phone_verified boolean DEFAULT false NOT NULL,
     reset_code character varying(6),
-    reset_code_expires_at timestamp without time zone
+    reset_code_expires_at timestamp without time zone,
+    privacy_accepted_at timestamp without time zone,
+    privacy_version character varying(40)
 );
 
 
@@ -874,5 +876,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict JbANtcdMLqqr9nG5pKbwz4faioJoffzlK51a3oTII3I25jv3yhv7s76xWg9cUCs
+\unrestrict IAMpSkxP3gSCuqMpA7f14ivFiwHL986KUJgejiayeg0haBgX5curtVrEQa7RFu2
 
