@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from utils.dependencies import get_current_user
@@ -21,6 +22,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()],
     allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],

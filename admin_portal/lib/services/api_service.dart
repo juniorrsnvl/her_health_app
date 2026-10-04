@@ -4,7 +4,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://127.0.0.1:8000',
+  );
 
   static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'admin_access_token';

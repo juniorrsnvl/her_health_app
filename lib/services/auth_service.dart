@@ -33,7 +33,10 @@ class AuthException implements Exception {
 /// - Physical device: use your Mac's LAN IP (e.g. http://192.168.x.x:8000),
 ///   with the phone on the same Wi-Fi network.
 class AuthService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://127.0.0.1:8000',
+  );
 
   /// The login token. Kept in memory while the app runs, and also saved
   /// to device storage (see restoreSession) so a refresh keeps the
