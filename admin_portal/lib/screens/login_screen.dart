@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'dashboard_screen.dart';
+import '../theme/design_a.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -63,93 +64,99 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: DA.ground,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(
-                  Icons.spa,
-                  size: 80,
-                  color: Colors.pink.shade200,
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Admin Portal Login',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: DA.blush,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                      child: Image.asset(
+                  'assets/images/logo/logo.png',
+                  height: 44,
+                  errorBuilder: (_, __, ___) => Icon(Icons.spa, size: 44, color: DA.rose),
+                ),
                     ),
                   ),
-                  onSubmitted: (_) => _handleLogin(),
-                ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red, fontSize: 14),
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: 20),
+                  Text('Admin portal', style: DA.body(15, color: DA.sage, weight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text('Log in', style: DA.heading(32)),
+                  const SizedBox(height: 8),
+                  Text('For practice staff only.', style: DA.body(16, color: DA.muted)),
+                  const SizedBox(height: 32),
+
+                  DA.label('Email address'),
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    style: DA.body(16),
+                    decoration: DA.input(),
+                  ),
+                  const SizedBox(height: 18),
+
+                  DA.label('Password'),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    autofillHints: const [AutofillHints.password],
+                    style: DA.body(16),
+                    decoration: DA.input(
+                      suffix: IconButton(
+                        tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: DA.sage,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
+                    onSubmitted: (_) => _handleLogin(),
+                  ),
+
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: DA.rejectedBg,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: DA.body(14, color: DA.rejectedInk, weight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 28),
+                  ElevatedButton(
+                    style: DA.primary(),
+                    onPressed: _isLoading ? null : _handleLogin,
+                    child: _isLoading ? DA.buttonSpinner : const Text('Log in'),
                   ),
                 ],
-                const SizedBox(height: 32),
-                SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Log In',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

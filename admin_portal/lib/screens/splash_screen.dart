@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'welcome_screen.dart';
 import '../services/api_service.dart';
 import 'dashboard_screen.dart';
+import '../theme/design_a.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,48 +39,37 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: DA.ground,
       body: SafeArea(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.spa,
-                  size: 120,
-                  color: Colors.pink.shade200,
+                Image.asset(
+                  'assets/images/logo/logo.png',
+                  height: 120,
+                  errorBuilder: (_, __, ___) => Icon(Icons.spa, size: 120, color: DA.rose),
                 ),
-                const SizedBox(height: 32),
-                const Text(
-                  'Women\'s Health Companion',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+                const SizedBox(height: 24),
+                Text('Her Health', style: DA.heading(36)),
+                const SizedBox(height: 6),
+                Text('Admin portal', style: DA.body(17, color: DA.sage, weight: FontWeight.w700)),
                 const SizedBox(height: 8),
-                const Text(
-                  'Inspired by Dr. Mbokota\'s practice.',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                Text(
+                  "Inspired by Dr. Mbokota's practice.",
+                  style: DA.body(15, color: DA.muted),
                   textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 60),
-                const Text(
-                  'Admin Portal',
-                  style: TextStyle(fontSize: 14),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Loading...',
-                  style: TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 40),
-                const Text(
-                  'version 1.0',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: DA.rose),
                 ),
+                const SizedBox(height: 40),
+                Text('Version 1.0', style: DA.body(12, color: DA.quiet)),
               ],
             ),
           ),

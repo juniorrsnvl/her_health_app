@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 class AppColors {
 
   // Main brand colours
-  static const Color lotusPink = Color(0xFFE89CB0);
+  static const Color lotusPink = Color(0xFFB04F6C);
 
-  static const Color sageGreen = Color(0xFF959B7D);
+  static const Color sageGreen = Color(0xFF6E7B5F);
 
 
   // Background colours

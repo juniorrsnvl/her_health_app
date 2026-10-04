@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'chatbot_screen.dart';
 import '../services/auth_service.dart';
+import '../theme/design_a.dart';
 
 class JourneyQuestionsScreen extends StatefulWidget {
   final String journey;
@@ -358,54 +359,14 @@ class _JourneyQuestionsScreenState
     }
   }
 
-  Widget sectionTitle(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: 15,
-        bottom: 15,
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF959B7D),
-        ),
-      ),
-    );
-  }
-
-  Widget continueButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFE89CB0),
-          shape: RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(30),
-          ),
-        ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const ChatbotScreen(),
-            ),
-          );
-        },
-        child: const Text(
-          "Continue to Her Health AI 🌸",
-          style: TextStyle(
-            fontSize: 18,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
+  /// "🤰 How many weeks pregnant are you?" -> "How many weeks pregnant are you?"
+  /// Display only: answers are read from the controllers, never the labels.
+  String _plain(String label) {
+    final space = label.indexOf(' ');
+    if (space > 0 && !RegExp(r'^[A-Za-z0-9]').hasMatch(label)) {
+      return label.substring(space + 1);
+    }
+    return label;
   }
 
   Widget buildQuestion(
@@ -414,112 +375,48 @@ class _JourneyQuestionsScreenState
   ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(
-            color: Color(0xFF959B7D),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DA.label(_plain(label)),
+          TextField(
+            controller: controller,
+            style: DA.body(16),
+            decoration: DA.input(),
           ),
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 18,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(
-              color: Color(0xFFE89CB0),
-              width: 2,
-            ),
-          ),
-        ),
+        ],
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context)
-  {
+  Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-          ),
-
-          Container(
-            color: Colors.white.withOpacity(0.25),
-          ),
-
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                padding: const EdgeInsets.all(25),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: const [
-                    BoxShadow(
-                      blurRadius: 15,
-                      color: Colors.black12,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-
-                    Center(
-                      child: Image.asset(
-                        'assets/images/logo/logo.png',
-                        height: 90,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    Center(
-                      child: Text(
-                        widget.journey,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF959B7D),
+      backgroundColor: DA.ground,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: DA.backButton(context),
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    const Center(
-                      child: Text(
-                        "Let's get to know you better so Her Health AI can give personalised support.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
+                        const SizedBox(height: 16),
+                        Text(_plain(widget.journey), style: DA.heading(30)),
+                        const SizedBox(height: 10),
+                        Text(
+                          "Let's get to know you better so Nia can give you personalised support.",
+                          style: DA.body(16, color: DA.muted, height: 1.5),
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
+                        const SizedBox(height: 28),
 
                     if (widget.journey ==
                         "🤰 Pregnancy Care") ...[
@@ -577,16 +474,7 @@ class _JourneyQuestionsScreenState
 
                     if (widget.journey == "🌸 Menstrual Health") ...[
 
-                      const Text(
-                        "🌸 Menstrual Health",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF959B7D),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
+                      
 
                       buildQuestion(
                         "📅 First day of your last period",
@@ -625,16 +513,7 @@ class _JourneyQuestionsScreenState
 
                     if (widget.journey == "👶 Postpartum Recovery") ...[
 
-                      const Text(
-                        "👶 Postpartum Recovery",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF959B7D),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
+                      
 
                       buildQuestion(
                         "🍼 How many weeks postpartum are you?",
@@ -673,16 +552,7 @@ class _JourneyQuestionsScreenState
 
                     if (widget.journey == "💚 General Women's Health") ...[
 
-                      const Text(
-                        "💚 General Women's Health",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF959B7D),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
+                      
 
                       buildQuestion(
                         "📏 Height (cm)",
@@ -721,16 +591,7 @@ class _JourneyQuestionsScreenState
 
                     if (widget.journey == "✨ Cosmetic Gynecology") ...[
 
-                      const Text(
-                        "✨ Cosmetic Gynecology",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF959B7D),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
+                      
 
                       buildQuestion(
                         "💬 What would you like to improve?",
@@ -753,45 +614,26 @@ class _JourneyQuestionsScreenState
                       ),
                     ],
 
-                    const SizedBox(height: 35),
 
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE89CB0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        onPressed: _isSaving ? null : _handleContinue,
-                        child: _isSaving
-                            ? const SizedBox(
-                                height: 22,
-                                width: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                "Continue to Her Health AI 🌸",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
+                      ],
                     ),
-
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: ElevatedButton(
+                  style: DA.primary(),
+                  onPressed: _isSaving ? null : _handleContinue,
+                  child: _isSaving ? DA.buttonSpinner : const Text('Continue to Nia'),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

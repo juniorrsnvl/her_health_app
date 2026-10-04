@@ -38,6 +38,7 @@ dependencies:
   local_auth: ^3.0.2
   http: ^1.6.0
   provider: ^6.1.5+1
+  google_fonts: ^9.0.0
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +61,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Her Health logo (Design A)
+  assets:
+    - assets/images/logo/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

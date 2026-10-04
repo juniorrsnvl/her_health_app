@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../theme/design_a.dart';
 import 'appointments_screen.dart';
 import 'messages_screen.dart';
 import 'health_profile_screen.dart';
@@ -135,899 +136,245 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     }
   }
 
-
-
-
-
-
-
   @override
-  Widget build(BuildContext context){
-
-
+  Widget build(BuildContext context) {
     return Scaffold(
-
-
-
+      backgroundColor: DA.ground,
       drawer: buildDrawer(),
-
-
-
-
-      appBar: AppBar(
-
-
-        backgroundColor:
-        const Color(0xFFE89CB0),
-
-
-
-        title: const Text(
-
-          "Her Health AI 🌸",
-
-          style: TextStyle(
-
-            color:Colors.white,
-
-            fontWeight:
-            FontWeight.bold,
-
-          ),
-
-        ),
-
-
-
-        iconTheme:
-        const IconThemeData(
-
-          color:Colors.white,
-
-        ),
-
-
-
-        actions:[
-
-
-          Padding(
-
-            padding:
-            const EdgeInsets.only(right:15),
-
-
-            child:Image.asset(
-
-              'assets/images/logo/logo.png',
-
-              height:35,
-
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header: menu, Nia's avatar, name and a clear "not a doctor" note.
+            Container(
+              padding: const EdgeInsets.fromLTRB(8, 10, 20, 10),
+              decoration: const BoxDecoration(
+                color: DA.surface,
+                border: Border(bottom: BorderSide(color: DA.divider)),
+              ),
+              child: Row(
+                children: [
+                  Builder(
+                    builder: (context) => IconButton(
+                      tooltip: 'Menu',
+                      icon: const Icon(Icons.menu_rounded, color: DA.ink),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: DA.blush,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.auto_awesome, color: DA.rose, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Nia', style: DA.heading(18)),
+                        Text(
+                          'Health assistant, not a doctor',
+                          style: DA.body(13, color: DA.quiet),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
 
-          )
-
-
-        ],
-
-
-      ),
-
-
-
-
-
-
-
-      body:Stack(
-
-
-
-        children:[
-
-
-
-          // Background
-
-          Image.asset(
-
-            'assets/images/backgrounds/background.jpeg',
-
-            fit:BoxFit.cover,
-
-            width:
-            double.infinity,
-
-            height:
-            double.infinity,
-
-          ),
-
-
-
-
-
-          // Overlay
-
-          Container(
-
-            color:
-            Colors.white.withOpacity(0.30),
-
-          ),
-
-
-
-
-
-
-          Column(
-
-
-            children:[
-
-
-
-
-
-              Expanded(
-
-
-                child:ListView.builder(
-
-
-
-                  controller: scrollController,
-
-
-
-                  padding:
-                  const EdgeInsets.all(15),
-
-
-
-                  itemCount:
-                  messages.length,
-
-
-
-                  itemBuilder:(context,index){
-
-
-
-                    bool isUser =
-                    messages[index]["sender"]=="user";
-
-
-
-
-
-                    return Align(
-
-
-
-                      alignment:
-
-                      isUser
-
-                          ? Alignment.centerRight
-
-                          : Alignment.centerLeft,
-
-
-
-
-
-                      child:Container(
-
-
-
-                        margin:
-                        const EdgeInsets.symmetric(
-                          vertical:8,
-                        ),
-
-
-
-
-                        padding:
-                        const EdgeInsets.all(15),
-
-
-
-
-
-                        constraints:
-                        const BoxConstraints(
-
-                          maxWidth:300,
-
-                        ),
-
-
-
-
-
-                        decoration:
-                        BoxDecoration(
-
-
-
-                          color:
-
-                          isUser
-
-                              ? const Color(0xFFE89CB0)
-
-                              : const Color(0xFF959B7D),
-
-
-
-
-
-                          borderRadius:
-                          BorderRadius.circular(20),
-
-
-
-                        ),
-
-
-
-
-
-                        child:Text(
-
-
-
-                          messages[index]["message"]!,
-
-
-
-                          style:
-                          const TextStyle(
-
-
-
-                            color:
-                            Colors.white,
-
-
-
-                            fontSize:16,
-
-
-
-                          ),
-
-
-                        ),
-
-
-
-                      ),
-
-
-
-                    );
-
-
-
-                  },
-
-
-                ),
-
-
-
+            if (_isLoadingHistory)
+              const LinearProgressIndicator(
+                minHeight: 2,
+                color: DA.rose,
+                backgroundColor: DA.blush,
               ),
 
-
-
-
-
-
-
-              // Modern AI textbox
-
-              Align(
-
-
-                alignment:
-                Alignment.bottomCenter,
-
-
-
-                child:Container(
-
-
-                  margin:
-                  const EdgeInsets.only(
-
-                    left:20,
-
-                    right:20,
-
-                    bottom:25,
-
-                  ),
-
-
-
-
-                  padding:
-                  const EdgeInsets.symmetric(
-
-                    horizontal:18,
-
-                    vertical:8,
-
-                  ),
-
-
-
-
-
-                  decoration:
-                  BoxDecoration(
-
-
-
-                    color:
-                    Colors.white.withOpacity(0.92),
-
-
-
-
-                    borderRadius:
-                    BorderRadius.circular(35),
-
-
-
-
-
-                    boxShadow:[
-
-
-                      BoxShadow(
-
-                        color:
-                        Colors.black12,
-
-                        blurRadius:20,
-
-                        offset:
-                        const Offset(0,8),
-
-                      )
-
-
-                    ],
-
-
-
-                  ),
-
-
-
-
-
-
-
-                  child:Row(
-
-
-
-                    children:[
-
-
-
-
-                      const Icon(
-
-                        Icons.auto_awesome,
-
-                        color:
-                        Color(0xFF959B7D),
-
-                      ),
-
-
-
-
-
-                      const SizedBox(width:10),
-
-
-
-
-
-                      Expanded(
-
-
-
-                        child:TextField(
-
-
-
-                          controller:
-                          messageController,
-
-
-
-                          decoration:
-                          const InputDecoration(
-
-
-
-                            hintText:
-                            "Ask Her Health anything 🌸",
-
-
-
-
-                            border:
-                            InputBorder.none,
-
-
-
-                          ),
-
-
-
+            // Conversation
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  final isUser = messages[index]["sender"] == "user";
+
+                  return Align(
+                    alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      constraints: const BoxConstraints(maxWidth: 300),
+                      decoration: BoxDecoration(
+                        color: isUser ? DA.rose : DA.surface,
+                        border: isUser ? null : Border.all(color: DA.divider),
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(20),
+                          topRight: const Radius.circular(20),
+                          bottomLeft: Radius.circular(isUser ? 20 : 6),
+                          bottomRight: Radius.circular(isUser ? 6 : 20),
                         ),
-
-
-
                       ),
-
-
-
-
-
-
-                      GestureDetector(
-
-
-
-                        onTap:
-                        _isSending ? null : sendMessage,
-
-
-
-
-                        child:Container(
-
-
-
-                          height:45,
-
-                          width:45,
-
-
-
-
-                          decoration:
-                          const BoxDecoration(
-
-
-
-                            color:
-                            Color(0xFFE89CB0),
-
-
-
-
-                            shape:
-                            BoxShape.circle,
-
-
-
-                          ),
-
-
-
-
-                          child: _isSending
-                              ? const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(
-
-
-
-                            Icons.send,
-
-                            color:
-                            Colors.white,
-
-                          ),
-
-
-
+                      child: Text(
+                        messages[index]["message"] ?? '',
+                        style: DA.body(
+                          15,
+                          color: isUser ? Colors.white : DA.ink,
+                          height: 1.5,
                         ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
 
-
-
-                      )
-
-
-
-
-                    ],
-
-
-
+            // Message bar
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              decoration: const BoxDecoration(
+                color: DA.surface,
+                border: Border(top: BorderSide(color: DA.divider)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: messageController,
+                      style: DA.body(15),
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) {
+                        if (!_isSending) sendMessage();
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Message Nia',
+                        hintStyle: DA.body(15, color: DA.quiet),
+                        filled: true,
+                        fillColor: DA.ground,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: DA.border, width: 1.5),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: DA.border, width: 1.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: DA.rose, width: 2),
+                        ),
+                      ),
+                    ),
                   ),
-
-
-
-                ),
-
-
-
-              )
-
-
-
-
-
-            ],
-
-
-
-          )
-
-
-
-        ],
-
-
-
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: IconButton(
+                      tooltip: 'Send',
+                      style: IconButton.styleFrom(
+                        backgroundColor: DA.rose,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: DA.rose.withValues(alpha: 0.5),
+                      ),
+                      onPressed: _isSending ? null : sendMessage,
+                      icon: _isSending
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.send_rounded, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-
-
-
     );
-
-
   }
 
-
-
-
-
-
-
-
-
-  Drawer buildDrawer(){
-
-
+  Drawer buildDrawer() {
+    final name = AuthService.firstName ?? '';
 
     return Drawer(
-
-
-
-      child:ListView(
-
-
-
-        children:[
-
-
-
-
-
-          DrawerHeader(
-
-
-
-            decoration:
-            const BoxDecoration(
-
-
-
-              color:
-              Color(0xFFE89CB0),
-
-
-
-            ),
-
-
-
-
-            child:Column(
-
-
-
-              mainAxisAlignment:
-              MainAxisAlignment.center,
-
-
-
-
-              children:[
-
-
-
-                Image.asset(
-
-
-
-                  'assets/images/logo/logo.png',
-
-
-
-                  height:70,
-
-
-
-                ),
-
-
-
-
-
-                const SizedBox(height:10),
-
-
-
-
-
-
-                const Text(
-
-
-
-                  "Her Health",
-
-
-
-                  style:
-                  TextStyle(
-
-
-
-                    color:
-                    Colors.white,
-
-
-
-                    fontSize:24,
-
-
-
-                    fontWeight:
-                    FontWeight.bold,
-
-
-
+      backgroundColor: DA.ground,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: DA.blush,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Image.asset('assets/images/logo/logo.png'),
                   ),
-
-
-
-                )
-
-
-
-              ],
-
-
-
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Her Health', style: DA.heading(20)),
+                        if (name.isNotEmpty)
+                          Text('Hi, $name', style: DA.body(14, color: DA.muted)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-
-
-
-
-          ),
-
-
-
-
-
-
-          drawerItem(
-            Icons.chat,
-            "AI Assistant",
-          ),
-
-
-
-
-
-          ListTile(
-            leading: const Icon(
-              Icons.calendar_month,
-              color: Color(0xFF959B7D),
-            ),
-            title: const Text("Appointments"),
-            onTap: () {
-              Navigator.pop(context); // close the drawer first
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AppointmentsScreen(),
-                ),
-              );
-            },
-          ),
-
-
-
-
-
-          ListTile(
-            leading: const Icon(
-              Icons.medical_services,
-              color: Color(0xFF959B7D),
-            ),
-            title: const Text("Contact Doctor"),
-            onTap: () {
-              Navigator.pop(context); // close the drawer first
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MessagesScreen(),
-                ),
-              );
-            },
-          ),
-
-
-
-
-
-          ListTile(
-            leading: const Icon(
-              Icons.favorite,
-              color: Color(0xFF959B7D),
-            ),
-            title: const Text("Health Profile"),
-            onTap: () {
-              Navigator.pop(context); // close the drawer first
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const HealthProfileScreen(),
-                ),
-              );
-            },
-          ),
-
-
-
-
-
-          ListTile(
-            leading: const Icon(
-              Icons.notifications,
-              color: Color(0xFF959B7D),
-            ),
-            title: const Text("Reminders"),
-            onTap: () {
-              Navigator.pop(context); // close the drawer first
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const RemindersScreen(),
-                ),
-              );
-            },
-          ),
-
-
-
-
-
-          ListTile(
-            leading: const Icon(
-              Icons.article,
-              color: Color(0xFF959B7D),
-            ),
-            title: const Text("Health Articles"),
-            onTap: () {
-              Navigator.pop(context); // close the drawer first
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ArticlesScreen(),
-                ),
-              );
-            },
-          ),
-
-
-
-
-
-          ListTile(
-            leading: const Icon(
-              Icons.settings,
-              color: Color(0xFF959B7D),
-            ),
-            title: const Text("Settings"),
-            onTap: () {
-              Navigator.pop(context); // close the drawer first
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SettingsScreen(),
-                ),
-              );
-            },
-          ),
-
-
-
-
-        ],
-
-
-
+            _drawerTile(Icons.auto_awesome_outlined, 'AI Assistant', null),
+            _drawerTile(Icons.calendar_month_outlined, 'Appointments', const AppointmentsScreen()),
+            _drawerTile(Icons.medical_services_outlined, 'Contact Doctor', const MessagesScreen()),
+            _drawerTile(Icons.favorite_border_rounded, 'Health Profile', const HealthProfileScreen()),
+            _drawerTile(Icons.notifications_none_rounded, 'Reminders', const RemindersScreen()),
+            _drawerTile(Icons.article_outlined, 'Health Articles', const ArticlesScreen()),
+            _drawerTile(Icons.settings_outlined, 'Settings', const SettingsScreen()),
+          ],
+        ),
       ),
-
-
-
     );
-
-
   }
 
+  /// One drawer row. [screen] null = this screen (Nia): just closes the drawer.
+  Widget _drawerTile(IconData icon, String title, Widget? screen) {
+    final current = screen == null;
 
-
-
-
-
-
-  Widget drawerItem(
-      IconData icon,
-      String title
-      ){
-
-
-
-    return ListTile(
-
-
-
-      leading:
-      Icon(
-
-        icon,
-
-        color:
-        const Color(0xFF959B7D),
-
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        tileColor: current ? DA.blush : null,
+        leading: Icon(icon, color: current ? DA.rose : DA.sage),
+        title: Text(
+          title,
+          style: DA.body(16, weight: current ? FontWeight.w700 : FontWeight.w600),
+        ),
+        onTap: () {
+          Navigator.pop(context); // close the drawer first
+          if (screen != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => screen),
+            );
+          }
+        },
       ),
-
-
-
-
-
-      title:
-      Text(title),
-
-
-
-
-
-      onTap:(){},
-
-
-
     );
-
-
   }
-
-
-
-
-
 }

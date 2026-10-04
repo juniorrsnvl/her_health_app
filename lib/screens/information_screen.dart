@@ -20,13 +20,7 @@ class InformationScreen extends StatelessWidget {
 
 
           // Background
-          Image.asset(
-
-            'assets/images/backgrounds/background.jpeg',
-
-            fit: BoxFit.cover,
-
-          ),
+          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
 
 
 
@@ -79,7 +73,7 @@ class InformationScreen extends StatelessWidget {
 
                         fontWeight: FontWeight.bold,
 
-                        color: Color(0xFF959B7D),
+                        color: Color(0xFF6E7B5F),
 
                       ),
 
@@ -156,7 +150,7 @@ class InformationScreen extends StatelessWidget {
 
                       style: ElevatedButton.styleFrom(
 
-                        backgroundColor: const Color(0xFFE89CB0),
+                        backgroundColor: const Color(0xFFB04F6C),
 
                         padding: const EdgeInsets.symmetric(
 
@@ -267,7 +261,7 @@ class InformationScreen extends StatelessWidget {
 
               fontWeight: FontWeight.bold,
 
-              color: Color(0xFF959B7D),
+              color: Color(0xFF6E7B5F),
 
             ),
 

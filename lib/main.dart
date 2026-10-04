@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/welcome_screen.dart';
 import 'screens/splash_screen.dart';
@@ -34,19 +35,20 @@ class HerHealthApp extends StatelessWidget {
 
 
       theme: ThemeData(
+        textTheme: GoogleFonts.nunitoSansTextTheme(),
 
-        primaryColor: const Color(0xFFE89CB0),
+        primaryColor: const Color(0xFFB04F6C),
 
 
-        scaffoldBackgroundColor: Colors.white,
+        scaffoldBackgroundColor: const Color(0xFFFAF6F3),
 
 
 
         colorScheme: ColorScheme.fromSeed(
 
-          seedColor: const Color(0xFFE89CB0),
+          seedColor: const Color(0xFFB04F6C),
 
-          primary: const Color(0xFFE89CB0),
+          primary: const Color(0xFFB04F6C),
 
         ),
 
@@ -56,7 +58,7 @@ class HerHealthApp extends StatelessWidget {
 
           style: ElevatedButton.styleFrom(
 
-            backgroundColor: const Color(0xFFE89CB0),
+            backgroundColor: const Color(0xFFB04F6C),
 
             foregroundColor: Colors.white,
 

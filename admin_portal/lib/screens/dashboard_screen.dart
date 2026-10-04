@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/design_a.dart';
 import 'login_screen.dart';
 import 'patients_screen.dart';
 import 'messages_inbox_screen.dart';
@@ -94,189 +95,264 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Color _statusColor(String status) {
+  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  /// "2026-12-15" + "09:00:00" -> "Tue 15 Dec 2026 · 09:00"
+  String _when(String date, String time) {
+    final d = DateTime.tryParse(date);
+    final t = time.length >= 5 ? time.substring(0, 5) : time;
+    if (d == null) return '$date · $t';
+    return '${_weekdays[d.weekday - 1]} ${d.day} ${_months[d.month - 1]} ${d.year} · $t';
+  }
+
+  /// Badge colours: colour AND word differ, so status reads without colour.
+  (Color, Color) _badge(String status) {
     switch (status) {
       case 'approved':
-        return Colors.green;
+        return (DA.approvedBg, DA.approvedInk);
       case 'rejected':
       case 'cancelled':
-        return Colors.red;
+        return (DA.rejectedBg, DA.rejectedInk);
       default:
-        return Colors.orange;
+        return (DA.pendingBg, DA.pendingInk);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Appointments'),
-        backgroundColor: Colors.pink.shade100,
+      backgroundColor: DA.ground,
+      appBar: DA.adminBar(
+        'Her Health',
+        showBack: false,
+        titleWidget: Row(
+          children: [
+            Image.asset('assets/images/logo/logo.png', height: 32,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            const SizedBox(width: 10),
+            Text('Her Health', style: DA.heading(20)),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: DA.blush,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text('Admin', style: DA.body(12, color: DA.rejectedInk, weight: FontWeight.w700)),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.people),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const PatientsScreen()),
-              );
-            },
-            tooltip: 'Patients',
-          ),
-          IconButton(
-            icon: const Icon(Icons.message),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MessagesInboxScreen()),
-              );
-            },
-            tooltip: 'Messages',
-          ),
-          IconButton(
-            icon: const Icon(Icons.article),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ArticlesManageScreen()),
-              );
-            },
-            tooltip: 'Health Articles',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
+          DA.barLink(Icons.people_outline_rounded, 'Patients', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PatientsScreen()),
+            );
+          }),
+          DA.barLink(Icons.mail_outline_rounded, 'Messages', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MessagesInboxScreen()),
+            );
+          }),
+          DA.barLink(Icons.article_outlined, 'Articles', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ArticlesManageScreen()),
+            );
+          }),
+          const SizedBox(width: 8),
+          OutlinedButton(
+            style: DA.outline().copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size(100, 44)),
+            ),
             onPressed: _logout,
-            tooltip: 'Log out',
+            child: const Text('Log out'),
           ),
         ],
       ),
       body: RefreshIndicator(
+        color: DA.rose,
         onRefresh: _loadAppointments,
         child: _buildBody(),
       ),
     );
   }
 
+  Widget _header() {
+    final pending = _appointments.where((a) => (a as Map<String, dynamic>)['status'] == 'pending').length;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Appointments', style: DA.heading(30)),
+          const SizedBox(height: 6),
+          Text(
+            pending == 0
+                ? 'No requests waiting for a decision.'
+                : '$pending ${pending == 1 ? 'request is' : 'requests are'} waiting for a decision.',
+            style: DA.body(16, color: DA.muted),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: DA.rose));
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadAppointments,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_appointments.isEmpty) {
       return ListView(
-        children: const [
-          SizedBox(height: 100),
-          Center(child: Text('No appointments yet.')),
+        padding: const EdgeInsets.all(32),
+        children: [
+          const SizedBox(height: 60),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: DA.body(15, color: DA.rejectedInk),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: OutlinedButton(
+              style: DA.outline().copyWith(
+                minimumSize: const WidgetStatePropertyAll(Size(140, 48)),
+              ),
+              onPressed: _loadAppointments,
+              child: const Text('Try again'),
+            ),
+          ),
         ],
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _appointments.length,
-      itemBuilder: (context, index) {
-        final appointment = _appointments[index] as Map<String, dynamic>;
-        final status = appointment['status'] as String? ?? 'pending';
-        final firstName = appointment['first_name'] as String? ?? '';
-        final lastName = appointment['last_name'] as String? ?? '';
-        final date = appointment['requested_date'] as String? ?? '';
-        final time = appointment['requested_time'] as String? ?? '';
-        final reason = appointment['reason'] as String?;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
+      children: [
+        DA.page(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _header(),
+              if (_appointments.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: DA.card(),
+                  child: Text(
+                    'No appointments yet.',
+                    textAlign: TextAlign.center,
+                    style: DA.body(16, color: DA.muted),
+                  ),
+                ),
+              ..._appointments.map((a) => _appointmentCard(a as Map<String, dynamic>)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
+  Widget _appointmentCard(Map<String, dynamic> appointment) {
+    final status = appointment['status'] as String? ?? 'pending';
+    final firstName = appointment['first_name'] as String? ?? '';
+    final lastName = appointment['last_name'] as String? ?? '';
+    final date = appointment['requested_date'] as String? ?? '';
+    final time = appointment['requested_time'] as String? ?? '';
+    final reason = appointment['reason'] as String?;
+    final (badgeBg, badgeInk) = _badge(status);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: DA.card(),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 16,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        alignment: WrapAlignment.spaceBetween,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 280, maxWidth: 520),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '$firstName $lastName',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _statusColor(status).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          color: _statusColor(status),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text('$date at $time'),
-                if (reason != null && reason.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(reason, style: const TextStyle(color: Colors.black54)),
-                ],
-                if (status == 'pending') ...[
-                  const SizedBox(height: 12),
-                  Row(
+                DA.initials(firstName, lastName),
+                const SizedBox(width: 14),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () =>
-                              _updateStatus(appointment['id'] as int, 'rejected'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '$firstName $lastName'.trim(),
+                              style: DA.body(17, weight: FontWeight.w700),
+                            ),
                           ),
-                          child: const Text('Reject'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () =>
-                              _updateStatus(appointment['id'] as int, 'approved'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: badgeBg,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              status.isEmpty ? status : status[0].toUpperCase() + status.substring(1),
+                              style: DA.body(12, color: badgeInk, weight: FontWeight.w700),
+                            ),
                           ),
-                          child: const Text('Approve'),
-                        ),
+                        ],
                       ),
+                      const SizedBox(height: 4),
+                      Text(_when(date, time), style: DA.body(15, color: DA.muted)),
+                      if (reason != null && reason.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(reason, style: DA.body(15, color: DA.quiet)),
+                      ],
                     ],
                   ),
-                ],
+                ),
               ],
             ),
           ),
-        );
-      },
+          if (status == 'pending')
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: DA.rejectedInk,
+                    side: const BorderSide(color: DA.border, width: 1.5),
+                    minimumSize: const Size(110, 44),
+                    shape: const StadiumBorder(),
+                    textStyle: DA.body(15, weight: FontWeight.w700),
+                  ),
+                  onPressed: () => _updateStatus(appointment['id'] as int, 'rejected'),
+                  child: const Text('Reject'),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: DA.sage,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    minimumSize: const Size(110, 44),
+                    shape: const StadiumBorder(),
+                    textStyle: DA.body(15, weight: FontWeight.w700),
+                  ),
+                  onPressed: () => _updateStatus(appointment['id'] as int, 'approved'),
+                  child: const Text('Approve'),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }

@@ -47,7 +47,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE89CB0),
+        backgroundColor: const Color(0xFFB04F6C),
         title: const Text(
           "Settings ⚙️",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -56,12 +56,7 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-          ),
+          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
           Container(color: Colors.white.withOpacity(0.30)),
           ListView(
             padding: const EdgeInsets.all(20),
@@ -73,7 +68,7 @@ class SettingsScreen extends StatelessWidget {
                     "Signed in as ${AuthService.firstName}",
                     style: const TextStyle(
                       fontSize: 16,
-                      color: Color(0xFF959B7D),
+                      color: Color(0xFF6E7B5F),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -83,7 +78,7 @@ class SettingsScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: ListTile(
-                  leading: const Icon(Icons.favorite, color: Color(0xFF959B7D)),
+                  leading: const Icon(Icons.favorite, color: Color(0xFF6E7B5F)),
                   title: const Text('Health Profile'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {

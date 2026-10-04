@@ -49,7 +49,7 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE89CB0),
+        backgroundColor: const Color(0xFFB04F6C),
         title: const Text(
           "Health Articles 📖",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -58,12 +58,7 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
       ),
       body: Stack(
         children: [
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-          ),
+          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
           Container(color: Colors.white.withOpacity(0.30)),
           RefreshIndicator(onRefresh: _load, child: _buildBody()),
         ],
@@ -173,7 +168,7 @@ class _CategoryChip extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFE89CB0).withValues(alpha: 0.2),
+        color: const Color(0xFFB04F6C).withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -202,7 +197,7 @@ class ArticleDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE89CB0),
+        backgroundColor: const Color(0xFFB04F6C),
         title: const Text(
           "Health Article",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -221,7 +216,7 @@ class ArticleDetailScreen extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF959B7D),
+                color: Color(0xFF6E7B5F),
               ),
             ),
             if (created != null) ...[

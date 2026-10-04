@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/design_a.dart';
 import 'login_screen.dart';
 
 class ArticlesManageScreen extends StatefulWidget {
@@ -127,18 +128,22 @@ class _ArticlesManageScreenState extends State<ArticlesManageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Health Articles'),
-        backgroundColor: Colors.pink.shade100,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.pink.shade200,
-        onPressed: () => _openEditor(),
-        icon: const Icon(Icons.add),
-        label: const Text('New article'),
+      backgroundColor: DA.ground,
+      appBar: DA.adminBar(
+        'Health articles',
+        actions: [
+          ElevatedButton.icon(
+            style: DA.primary().copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size(150, 44)),
+            ),
+            onPressed: () => _openEditor(),
+            icon: const Icon(Icons.add, size: 20),
+            label: const Text('New article'),
+          ),
+        ],
       ),
       body: RefreshIndicator(
+        color: DA.rose,
         onRefresh: _loadArticles,
         child: _buildBody(),
       ),
@@ -147,85 +152,123 @@ class _ArticlesManageScreenState extends State<ArticlesManageScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: DA.rose));
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadArticles,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_articles.isEmpty) {
       return ListView(
-        children: const [
-          SizedBox(height: 100),
-          Center(child: Text('No articles yet. Tap "New article" to write one.')),
+        padding: const EdgeInsets.all(32),
+        children: [
+          const SizedBox(height: 60),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: DA.body(15, color: DA.rejectedInk),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: OutlinedButton(
+              style: DA.outline().copyWith(
+                minimumSize: const WidgetStatePropertyAll(Size(140, 48)),
+              ),
+              onPressed: _loadArticles,
+              child: const Text('Try again'),
+            ),
+          ),
         ],
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
-      itemCount: _articles.length,
-      itemBuilder: (context, index) {
-        final article = _articles[index] as Map<String, dynamic>;
-        final title = article['title'] as String? ?? '';
-        final category = article['category'] as String?;
-        final body = article['body'] as String? ?? '';
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
+      children: [
+        DA.page(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Health articles', style: DA.heading(30)),
+              const SizedBox(height: 6),
+              Text(
+                'Everything published here appears in the patient app.',
+                style: DA.body(16, color: DA.muted),
+              ),
+              const SizedBox(height: 20),
+              if (_articles.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: DA.card(),
+                  child: Text(
+                    'No articles yet. Use "New article" to write one.',
+                    textAlign: TextAlign.center,
+                    style: DA.body(16, color: DA.muted),
+                  ),
+                ),
+              ..._articles.map((a) => _articleRow(a as Map<String, dynamic>)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(12),
-            title: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
+  Widget _articleRow(Map<String, dynamic> article) {
+    final title = article['title'] as String? ?? '';
+    final category = article['category'] as String?;
+    final body = article['body'] as String? ?? '';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+      decoration: DA.card(),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (category != null && category.isNotEmpty)
-                  Text(
-                    category,
-                    style: TextStyle(color: Colors.pink.shade300, fontSize: 12),
+                if (category != null && category.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: DA.blush,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      category,
+                      style: DA.body(12, color: DA.rejectedInk, weight: FontWeight.w700),
+                    ),
                   ),
-                Text(body, maxLines: 2, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  tooltip: 'Edit',
-                  onPressed: () => _openEditor(article),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  tooltip: 'Delete',
-                  onPressed: () => _delete(article),
+                  const SizedBox(height: 8),
+                ],
+                Text(title, style: DA.body(17, weight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: DA.body(15, color: DA.muted),
                 ),
               ],
             ),
           ),
-        );
-      },
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: 'Edit',
+            icon: const Icon(Icons.edit_outlined, color: DA.sage),
+            onPressed: () => _openEditor(article),
+          ),
+          IconButton(
+            tooltip: 'Delete',
+            icon: const Icon(Icons.delete_outline_rounded, color: DA.rejectedInk),
+            onPressed: () => _delete(article),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// Write a new article, or edit an existing one when [article] is given.
 class ArticleEditorScreen extends StatefulWidget {
   final Map<String, dynamic>? article;
 
@@ -302,75 +345,58 @@ class _ArticleEditorScreenState extends State<ArticleEditorScreen> {
     }
   }
 
-  InputDecoration _decoration(String label, {String? hint}) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      alignLabelWithHint: true,
-      filled: true,
-      fillColor: Colors.grey.shade100,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Article' : 'New Article'),
-        backgroundColor: Colors.pink.shade100,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: _decoration('Title'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: categoryController,
-              decoration: _decoration(
-                'Category (optional)',
-                hint: 'e.g. Pregnancy, Menstrual Health, Wellness',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: bodyController,
-              minLines: 10,
-              maxLines: 25,
-              decoration: _decoration('Article text'),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+      backgroundColor: DA.ground,
+      appBar: DA.adminBar(_isEditing ? 'Edit article' : 'New article'),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
+        children: [
+          DA.page(
+            maxWidth: 760,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DA.label('Title'),
+                TextField(
+                  controller: titleController,
+                  style: DA.body(16),
+                  decoration: DA.input(),
                 ),
-                onPressed: _isSaving ? null : _save,
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(_isEditing ? 'Save changes' : 'Publish'),
-              ),
+                const SizedBox(height: 18),
+                DA.label('Category (optional)'),
+                TextField(
+                  controller: categoryController,
+                  style: DA.body(16),
+                  decoration: DA.input(hint: 'e.g. Pregnancy, Menstrual Health, Wellness'),
+                ),
+                const SizedBox(height: 18),
+                DA.label('Article text'),
+                TextField(
+                  controller: bodyController,
+                  minLines: 12,
+                  maxLines: 30,
+                  style: DA.body(16, height: 1.6),
+                  decoration: DA.input(),
+                ),
+                const SizedBox(height: 28),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    style: DA.primary().copyWith(
+                      minimumSize: const WidgetStatePropertyAll(Size(200, 56)),
+                    ),
+                    onPressed: _isSaving ? null : _save,
+                    child: _isSaving
+                        ? DA.buttonSpinner
+                        : Text(_isEditing ? 'Save changes' : 'Publish'),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

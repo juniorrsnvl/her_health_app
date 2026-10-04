@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../theme/design_a.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -41,18 +42,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     }
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'approved':
-        return Colors.green;
-      case 'rejected':
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
-
   Future<void> _openRequestForm() async {
     final requested = await showModalBottomSheet<bool>(
       context: context,
@@ -68,143 +57,193 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     }
   }
 
+  static const _months = [
+    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  ];
+  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  /// Background + text colour for a status badge. Colour AND word differ,
+  /// so the status reads without relying on colour.
+  (Color, Color) _badge(String status) {
+    switch (status) {
+      case 'approved':
+        return (DA.approvedBg, DA.approvedInk);
+      case 'rejected':
+      case 'cancelled':
+        return (DA.rejectedBg, DA.rejectedInk);
+      default:
+        return (DA.pendingBg, DA.pendingInk);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFE89CB0),
-        title: const Text(
-          "My Appointments 🌸",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      backgroundColor: DA.ground,
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFE89CB0),
+        backgroundColor: DA.rose,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        shape: const StadiumBorder(),
         onPressed: _openRequestForm,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          "Request",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        icon: const Icon(Icons.add),
+        label: Text(
+          'Request appointment',
+          style: DA.heading(16, color: Colors.white),
         ),
       ),
-      body: Stack(
-        children: [
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-          ),
-          Container(color: Colors.white.withOpacity(0.30)),
-          RefreshIndicator(
-            onRefresh: _loadAppointments,
-            child: _buildBody(),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DA.backButton(context),
+                  const SizedBox(height: 16),
+                  Text('My appointments', style: DA.heading(30)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                color: DA.rose,
+                onRefresh: _loadAppointments,
+                child: _buildBody(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: DA.rose));
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadAppointments,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_appointments.isEmpty) {
       return ListView(
-        children: const [
-          SizedBox(height: 120),
+        padding: const EdgeInsets.all(24),
+        children: [
+          const SizedBox(height: 60),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: DA.body(15, color: DA.rejectedInk),
+          ),
+          const SizedBox(height: 16),
           Center(
-            child: Text(
-              "No appointments yet.\nTap Request to book one.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black87),
+            child: OutlinedButton(
+              style: DA.outline().copyWith(
+                minimumSize: const WidgetStatePropertyAll(Size(140, 48)),
+              ),
+              onPressed: _loadAppointments,
+              child: const Text('Try again'),
             ),
           ),
         ],
       );
     }
 
+    if (_appointments.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const SizedBox(height: 80),
+          Text(
+            'No appointments yet.\nTap "Request appointment" to book one.',
+            textAlign: TextAlign.center,
+            style: DA.body(16, color: DA.muted),
+          ),
+        ],
+      );
+    }
+
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
       itemCount: _appointments.length,
       itemBuilder: (context, index) {
         final appointment = _appointments[index] as Map<String, dynamic>;
         final status = appointment['status'] as String? ?? 'pending';
-        final date = appointment['requested_date'] as String? ?? '';
-        final time = appointment['requested_time'] as String? ?? '';
+        final dateText = appointment['requested_date'] as String? ?? '';
+        final timeText = appointment['requested_time'] as String? ?? '';
         final reason = appointment['reason'] as String?;
 
-        return Card(
+        final date = DateTime.tryParse(dateText);
+        final time = timeText.length >= 5 ? timeText.substring(0, 5) : timeText;
+        final (badgeBg, badgeInk) = _badge(status);
+
+        return Container(
           margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          padding: const EdgeInsets.all(16),
+          decoration: DA.card(),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 56,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '$date at $time',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      date == null ? '' : _months[date.month - 1],
+                      style: DA.body(12, color: badgeInk, weight: FontWeight.w700),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _statusColor(status).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          color: _statusColor(status),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
+                    Text(
+                      date == null ? '?' : '${date.day}',
+                      style: DA.heading(22),
                     ),
                   ],
                 ),
-                if (reason != null && reason.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(reason, style: const TextStyle(color: Colors.black54)),
-                ],
-              ],
-            ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            date == null
+                                ? '$dateText · $time'
+                                : '${_weekdays[date.weekday - 1]} · $time',
+                            style: DA.body(16, weight: FontWeight.w700),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            status.isEmpty
+                                ? status
+                                : status[0].toUpperCase() + status.substring(1),
+                            style: DA.body(12, color: badgeInk, weight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (reason != null && reason.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(reason, style: DA.body(14, color: DA.muted)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -298,6 +337,8 @@ class _RequestAppointmentSheetState extends State<_RequestAppointmentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final two = (int n) => n.toString().padLeft(2, '0');
+
     return Padding(
       padding: EdgeInsets.only(
         left: 24,
@@ -307,77 +348,53 @@ class _RequestAppointmentSheetState extends State<_RequestAppointmentSheet> {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            "Request an Appointment 🌸",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF959B7D),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.calendar_today, color: Color(0xFF959B7D)),
-            title: Text(
-              selectedDate == null
-                  ? 'Choose a date'
-                  : '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}',
-            ),
+          Text('Request an appointment', style: DA.heading(22)),
+          const SizedBox(height: 16),
+          DA.label('Date'),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
             onTap: _pickDate,
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.access_time, color: Color(0xFF959B7D)),
-            title: Text(
-              selectedTime == null ? 'Choose a time' : selectedTime!.format(context),
+            child: InputDecorator(
+              decoration: DA.input(
+                suffix: const Icon(Icons.calendar_today_outlined, color: DA.sage),
+              ),
+              child: Text(
+                selectedDate == null
+                    ? 'Choose a date'
+                    : '${two(selectedDate!.day)}/${two(selectedDate!.month)}/${selectedDate!.year}',
+                style: DA.body(16, color: selectedDate == null ? DA.quiet : DA.ink),
+              ),
             ),
-            onTap: _pickTime,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
+          DA.label('Time'),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: _pickTime,
+            child: InputDecorator(
+              decoration: DA.input(
+                suffix: const Icon(Icons.access_time_rounded, color: DA.sage),
+              ),
+              child: Text(
+                selectedTime == null ? 'Choose a time' : selectedTime!.format(context),
+                style: DA.body(16, color: selectedTime == null ? DA.quiet : DA.ink),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          DA.label('Reason (optional)'),
           TextField(
             controller: reasonController,
-            decoration: InputDecoration(
-              labelText: 'Reason (optional)',
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-            ),
+            style: DA.body(16),
+            decoration: DA.input(),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE89CB0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-              ),
-              onPressed: _isSubmitting ? null : _submit,
-              child: _isSubmitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(
-                      "Submit Request",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-            ),
+          ElevatedButton(
+            style: DA.primary(),
+            onPressed: _isSubmitting ? null : _submit,
+            child: _isSubmitting ? DA.buttonSpinner : const Text('Send request'),
           ),
         ],
       ),

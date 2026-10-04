@@ -94,7 +94,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE89CB0),
+        backgroundColor: const Color(0xFFB04F6C),
         title: const Text(
           "Reminders 🔔",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -102,7 +102,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFE89CB0),
+        backgroundColor: const Color(0xFFB04F6C),
         onPressed: _openAddSheet,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
@@ -112,12 +112,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       ),
       body: Stack(
         children: [
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-          ),
+          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
           Container(color: Colors.white.withOpacity(0.30)),
           RefreshIndicator(onRefresh: _load, child: _buildBody()),
         ],
@@ -182,7 +177,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
           child: ListTile(
             leading: Checkbox(
               value: isDone,
-              activeColor: const Color(0xFFE89CB0),
+              activeColor: const Color(0xFFB04F6C),
               onChanged: (value) => _toggle(reminder, value ?? false),
             ),
             title: Text(
@@ -329,7 +324,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF959B7D),
+              color: Color(0xFF6E7B5F),
             ),
           ),
           const SizedBox(height: 16),
@@ -349,7 +344,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading:
-                const Icon(Icons.calendar_today, color: Color(0xFF959B7D)),
+                const Icon(Icons.calendar_today, color: Color(0xFF6E7B5F)),
             title: Text(
               selectedDate == null
                   ? 'Choose a date'
@@ -359,7 +354,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.access_time, color: Color(0xFF959B7D)),
+            leading: const Icon(Icons.access_time, color: Color(0xFF6E7B5F)),
             title: Text(
               selectedTime == null
                   ? 'Choose a time'
@@ -385,7 +380,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
             height: 50,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE89CB0),
+                backgroundColor: const Color(0xFFB04F6C),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25),
                 ),

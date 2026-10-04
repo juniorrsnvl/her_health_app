@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/design_a.dart';
 import 'login_screen.dart';
 
 class MessageThreadScreen extends StatefulWidget {
@@ -141,19 +142,22 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final name = widget.patientName.isEmpty
+        ? 'Patient #${widget.patientId}'
+        : widget.patientName;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          widget.patientName.isEmpty
-              ? 'Patient #${widget.patientId}'
-              : widget.patientName,
-        ),
-        backgroundColor: Colors.pink.shade100,
-      ),
+      backgroundColor: DA.ground,
+      appBar: DA.adminBar(name),
       body: Column(
         children: [
-          Expanded(child: _buildBody()),
+          Expanded(
+            child: RefreshIndicator(
+              color: DA.rose,
+              onRefresh: _loadThread,
+              child: _buildBody(),
+            ),
+          ),
           _buildReplyBar(),
         ],
       ),
@@ -162,60 +166,86 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: DA.rose));
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 16),
-            ElevatedButton(
+      return ListView(
+        padding: const EdgeInsets.all(32),
+        children: [
+          const SizedBox(height: 60),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: DA.body(15, color: DA.rejectedInk),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: OutlinedButton(
+              style: DA.outline().copyWith(
+                minimumSize: const WidgetStatePropertyAll(Size(140, 48)),
+              ),
               onPressed: _loadThread,
-              child: const Text('Retry'),
+              child: const Text('Try again'),
             ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
     if (_messages.isEmpty) {
-      return const Center(child: Text('No messages yet.'));
+      return ListView(
+        children: [
+          const SizedBox(height: 100),
+          Text(
+            'No messages yet.',
+            textAlign: TextAlign.center,
+            style: DA.body(16, color: DA.muted),
+          ),
+        ],
+      );
     }
 
     return ListView.builder(
       controller: scrollController,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
       itemCount: _messages.length,
       itemBuilder: (context, index) {
         final m = _messages[index] as Map<String, dynamic>;
         final isStaff = m['sender_role'] == 'staff';
 
-        return Align(
-          alignment: isStaff ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 6),
-            padding: const EdgeInsets.all(14),
-            constraints: const BoxConstraints(maxWidth: 320),
-            decoration: BoxDecoration(
-              color: isStaff ? Colors.pink.shade100 : Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(16),
-            ),
+        return DA.page(
+          maxWidth: 760,
+          Align(
+            alignment: isStaff ? Alignment.centerRight : Alignment.centerLeft,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: isStaff ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                Text(
-                  isStaff ? 'You (Practice)' : widget.patientName,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black54,
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 4, left: 4, right: 4),
+                  child: Text(
+                    isStaff ? 'You (practice)' : widget.patientName,
+                    style: DA.body(12, color: DA.quiet, weight: FontWeight.w700),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text((m['message'] as String?) ?? ''),
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: isStaff ? DA.rose : DA.surface,
+                    border: isStaff ? null : Border.all(color: DA.divider),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(20),
+                      topRight: const Radius.circular(20),
+                      bottomLeft: Radius.circular(isStaff ? 20 : 6),
+                      bottomRight: Radius.circular(isStaff ? 6 : 20),
+                    ),
+                  ),
+                  child: Text(
+                    (m['message'] as String?) ?? '',
+                    style: DA.body(15, color: isStaff ? Colors.white : DA.ink, height: 1.5),
+                  ),
+                ),
               ],
             ),
           ),
@@ -226,42 +256,49 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   Widget _buildReplyBar() {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: const Offset(0, -2)),
-        ],
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+      decoration: const BoxDecoration(
+        color: DA.surface,
+        border: Border(top: BorderSide(color: DA.divider)),
       ),
-      child: SafeArea(
-        top: false,
-        child: Row(
+      child: DA.page(
+        maxWidth: 760,
+        Row(
           children: [
             Expanded(
               child: TextField(
                 controller: replyController,
-                decoration: InputDecoration(
-                  hintText: 'Reply to ${widget.patientName}...',
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
+                style: DA.body(15),
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) {
+                  if (!_isSending) _sendReply();
+                },
+                decoration: DA.input(hint: 'Reply to ${widget.patientName}...').copyWith(
+                  fillColor: DA.ground,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: _isSending
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(Icons.send, color: Colors.pink.shade300),
-              onPressed: _isSending ? null : _sendReply,
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: IconButton(
+                tooltip: 'Send reply',
+                style: IconButton.styleFrom(
+                  backgroundColor: DA.rose,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: DA.rose.withValues(alpha: 0.5),
+                ),
+                onPressed: _isSending ? null : _sendReply,
+                icon: _isSending
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.send_rounded, size: 20),
+              ),
             ),
           ],
         ),

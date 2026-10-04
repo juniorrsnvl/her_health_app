@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'email_verification_screen.dart';
 import '../services/auth_service.dart';
+import '../theme/design_a.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -90,25 +91,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget inputField(
     String label,
-    IconData icon,
     TextEditingController controller, {
     bool password = false,
+    TextInputType? keyboardType,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        controller: controller,
-        obscureText: password,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, color: const Color(0xFF959B7D)),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DA.label(label),
+          TextField(
+            controller: controller,
+            obscureText: password,
+            keyboardType: keyboardType,
+            style: DA.body(16),
+            decoration: DA.input(),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -123,45 +123,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
             '${selectedDob!.year}';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () async {
-          final now = DateTime.now();
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: DateTime(now.year - 25, now.month, now.day),
-            firstDate: DateTime(1920),
-            lastDate: now,
-            helpText: 'Select date of birth',
-          );
-          if (picked != null) {
-            setState(() {
-              selectedDob = picked;
-            });
-          }
-        },
-        child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: 'Date of Birth',
-            prefixIcon: const Icon(
-              Icons.calendar_today,
-              color: Color(0xFF959B7D),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide.none,
-            ),
-          ),
-          child: Text(
-            displayText.isEmpty ? 'Tap to select' : displayText,
-            style: TextStyle(
-              color: displayText.isEmpty ? Colors.black45 : Colors.black87,
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DA.label('Date of birth'),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () async {
+              final now = DateTime.now();
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: DateTime(now.year - 25, now.month, now.day),
+                firstDate: DateTime(1920),
+                lastDate: now,
+                helpText: 'Select date of birth',
+              );
+              if (picked != null) {
+                setState(() {
+                  selectedDob = picked;
+                });
+              }
+            },
+            child: InputDecorator(
+              decoration: DA.input(
+                suffix: const Icon(Icons.calendar_today_outlined, color: DA.sage),
+              ),
+              child: Text(
+                displayText.isEmpty ? 'Select a date' : displayText,
+                style: DA.body(16, color: displayText.isEmpty ? DA.quiet : DA.ink),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -169,27 +163,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// Single-select dropdown for blood type.
   Widget bloodTypeField() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: DropdownButtonFormField<String>(
-        initialValue: selectedBloodType,
-        decoration: InputDecoration(
-          labelText: 'Blood Type 🩸',
-          prefixIcon: const Icon(Icons.bloodtype, color: Color(0xFF959B7D)),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DA.label('Blood type'),
+          DropdownButtonFormField<String>(
+            initialValue: selectedBloodType,
+            hint: Text('Select', style: DA.body(16, color: DA.quiet)),
+            style: DA.body(16),
+            dropdownColor: DA.surface,
+            borderRadius: BorderRadius.circular(16),
+            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: DA.sage),
+            decoration: DA.input(),
+            items: bloodTypes
+                .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                selectedBloodType = value;
+              });
+            },
           ),
-        ),
-        items: bloodTypes
-            .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-            .toList(),
-        onChanged: (value) {
-          setState(() {
-            selectedBloodType = value;
-          });
-        },
+        ],
       ),
     );
   }
@@ -199,100 +195,81 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// selection, since they're mutually exclusive.
   Widget multiSelectField({
     required String label,
-    required IconData icon,
     required List<String> options,
     required Set<String> selected,
     required TextEditingController otherController,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: const Color(0xFF959B7D), size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFF959B7D),
-                    fontWeight: FontWeight.w600,
-                  ),
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(label, style: DA.body(14, weight: FontWeight.w700)),
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: options.map((option) {
+              final isSelected = selected.contains(option);
+              return FilterChip(
+                label: Text(option),
+                selected: isSelected,
+                showCheckmark: true,
+                checkmarkColor: DA.ink,
+                labelStyle: DA.body(
+                  14,
+                  weight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: options.map((option) {
-                final isSelected = selected.contains(option);
-                return FilterChip(
-                  label: Text(option),
-                  selected: isSelected,
-                  selectedColor: const Color(0xFFE89CB0).withValues(alpha: 0.3),
-                  checkmarkColor: const Color(0xFFE89CB0),
-                  onSelected: (value) {
-                    setState(() {
-                      if (option == 'None') {
-                        selected.clear();
-                        if (value) selected.add('None');
+                backgroundColor: DA.surface,
+                selectedColor: DA.blush,
+                side: BorderSide(color: isSelected ? DA.rose : DA.border, width: 1.5),
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                onSelected: (value) {
+                  setState(() {
+                    if (option == 'None') {
+                      selected.clear();
+                      if (value) selected.add('None');
+                    } else {
+                      selected.remove('None');
+                      if (value) {
+                        selected.add(option);
                       } else {
-                        selected.remove('None');
-                        if (value) {
-                          selected.add(option);
-                        } else {
-                          selected.remove(option);
-                        }
+                        selected.remove(option);
                       }
-                    });
-                  },
-                );
-              }).toList(),
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          if (selected.contains('Other')) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: otherController,
+              style: DA.body(16),
+              decoration: DA.input(hint: 'Please specify'),
             ),
-            if (selected.contains('Other')) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: otherController,
-                decoration: InputDecoration(
-                  hintText: 'Please specify',
-                  filled: true,
-                  fillColor: const Color(0xFFF5F5F5),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget sectionTitle(String text) {
+  Widget sectionTitle(String text, {String? note}) {
     return Padding(
-      padding: const EdgeInsets.only(top: 25, bottom: 10),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF959B7D),
-        ),
+      padding: const EdgeInsets.only(top: 28, bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(text, style: DA.heading(19, color: DA.sage)),
+          if (note != null) ...[
+            const SizedBox(height: 4),
+            Text(note, style: DA.body(14, color: DA.quiet)),
+          ],
+        ],
       ),
     );
   }
@@ -400,139 +377,80 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-            height: double.infinity,
-            width: double.infinity,
-          ),
-          Container(color: Colors.white.withOpacity(0.25)),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(25),
+      backgroundColor: DA.ground,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Image.asset('assets/images/logo/logo.png', height: 100),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Create Your Her Health Account 🌸",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF959B7D),
-                    ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: DA.backButton(context),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Create your account', style: DA.heading(30)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Start your Her Health journey.',
+                    style: DA.body(16, color: DA.muted),
                   ),
 
-                  sectionTitle("👤 Personal Information"),
-
-                  inputField("Full Name", Icons.person, nameController),
-
+                  sectionTitle('Personal information'),
+                  inputField('Full name', nameController),
                   dateOfBirthField(),
+                  inputField('Email address', emailController,
+                      keyboardType: TextInputType.emailAddress),
+                  inputField('Phone number', phoneController,
+                      keyboardType: TextInputType.phone),
+                  inputField('Password', passwordController, password: true),
+                  inputField('Confirm password', confirmPasswordController,
+                      password: true),
 
-                  inputField("Email Address", Icons.email, emailController),
+                  sectionTitle('Contact information'),
+                  inputField('Street address', addressController),
+                  inputField('City', cityController),
+                  inputField('Emergency contact name', emergencyNameController),
+                  inputField('Emergency contact number', emergencyPhoneController,
+                      keyboardType: TextInputType.phone),
 
-                  inputField("Phone Number", Icons.phone, phoneController),
-
-                  inputField(
-                    "Password",
-                    Icons.lock,
-                    passwordController,
-                    password: true,
-                  ),
-
-                  inputField(
-                    "Confirm Password",
-                    Icons.lock_outline,
-                    confirmPasswordController,
-                    password: true,
-                  ),
-
-                  sectionTitle("🏠 Contact Information"),
-
-                  inputField("Street Address", Icons.home, addressController),
-
-                  inputField("City", Icons.location_city, cityController),
-
-                  inputField(
-                    "Emergency Contact Name",
-                    Icons.contact_phone,
-                    emergencyNameController,
-                  ),
-
-                  inputField(
-                    "Emergency Contact Number",
-                    Icons.phone_in_talk,
-                    emergencyPhoneController,
-                  ),
-
-                  sectionTitle("❤️ Health Information"),
-
+                  sectionTitle('Health information', note: 'Optional'),
                   bloodTypeField(),
-
                   multiSelectField(
-                    label: 'Allergies ⚠️',
-                    icon: Icons.warning,
+                    label: 'Allergies',
                     options: allergyOptions,
                     selected: selectedAllergies,
                     otherController: allergyOtherController,
                   ),
-
                   multiSelectField(
-                    label: 'Medical Conditions',
-                    icon: Icons.medical_information,
+                    label: 'Medical conditions',
                     options: conditionOptions,
                     selected: selectedConditions,
                     otherController: conditionOtherController,
                   ),
-
                   multiSelectField(
-                    label: 'Current Medication 💊',
-                    icon: Icons.medication,
+                    label: 'Current medication',
                     options: medicationOptions,
                     selected: selectedMedications,
                     otherController: medicationOtherController,
                   ),
 
-                  const SizedBox(height: 30),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE89CB0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      onPressed: _isSubmitting ? null : _handleCreateAccount,
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              "Create Account 🌸",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    style: DA.primary(),
+                    onPressed: _isSubmitting ? null : _handleCreateAccount,
+                    child: _isSubmitting
+                        ? DA.buttonSpinner
+                        : const Text('Create account'),
                   ),
                 ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

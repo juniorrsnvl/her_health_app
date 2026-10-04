@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../theme/design_a.dart';
 import 'login_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -120,23 +121,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Widget _methodButton(String method, String label) {
     final isSelected = selectedMethod == method;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedMethod = method;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE89CB0) : Colors.transparent,
-          borderRadius: BorderRadius.circular(26),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF959B7D),
-            fontWeight: FontWeight.bold,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      child: Material(
+        color: isSelected ? DA.rose : Colors.transparent,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: () {
+            setState(() {
+              selectedMethod = method;
+            });
+          },
+          child: SizedBox(
+            height: 44,
+            child: Center(
+              child: Text(
+                label,
+                style: DA.body(
+                  15,
+                  weight: FontWeight.w700,
+                  color: isSelected ? Colors.white : DA.muted,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -145,26 +154,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Widget _codeBox(int index) {
     return SizedBox(
-      width: 42,
-      height: 52,
+      width: 48,
+      height: 58,
       child: TextField(
         controller: codeControllers[index],
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         maxLength: 1,
+        style: DA.heading(22),
         onChanged: (value) {
           if (value.isNotEmpty && index < 5) {
             FocusScope.of(context).nextFocus();
           }
         },
-        decoration: InputDecoration(
+        decoration: DA.input().copyWith(
           counterText: "",
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide.none,
-          ),
+          contentPadding: EdgeInsets.zero,
         ),
       ),
     );
@@ -173,250 +178,171 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-          ),
-          Container(color: Colors.white.withOpacity(0.25)),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(25),
+      backgroundColor: DA.ground,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Image.asset('assets/images/logo/logo.png', height: 100),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "Reset Your Password 🌸",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF959B7D),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: DA.backButton(context),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Reset your password', style: DA.heading(30)),
+                  const SizedBox(height: 8),
+                  Text(
+                    _codeRequested
+                        ? 'Enter the code, then choose a new password.'
+                        : 'Enter the email you signed up with.',
+                    style: DA.body(16, color: DA.muted),
+                  ),
+                  const SizedBox(height: 28),
+
+                  DA.label('Email address'),
+                  TextField(
+                    controller: emailController,
+                    enabled: !_codeRequested,
+                    keyboardType: TextInputType.emailAddress,
+                    style: DA.body(16, color: _codeRequested ? DA.muted : DA.ink),
+                    decoration: DA.input().copyWith(
+                      fillColor: _codeRequested ? DA.chip : DA.surface,
+                      disabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: DA.border, width: 1.5),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 25),
 
-                  Container(
-                    padding: const EdgeInsets.all(25),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.92),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: const [
-                        BoxShadow(
-                          blurRadius: 15,
-                          color: Colors.black12,
-                          offset: Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: emailController,
-                          enabled: !_codeRequested,
-                          decoration: InputDecoration(
-                            labelText: "Email Address",
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-
-                        if (!_codeRequested) ...[
-                          const SizedBox(height: 20),
-                          const Text(
-                            "Send the code by:",
-                            style: TextStyle(color: Colors.black54),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            padding: const EdgeInsets.all(4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _methodButton('email', 'Email 📧'),
-                                _methodButton('phone', 'Phone 📱'),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE89CB0),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                              ),
-                              onPressed:
-                                  _isRequesting ? null : _handleRequestCode,
-                              child: _isRequesting
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text(
-                                      "Send Reset Code",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          ),
+                  if (!_codeRequested) ...[
+                    const SizedBox(height: 20),
+                    DA.label('Send the code by'),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: DA.surface,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: DA.border, width: 1.5),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(child: _methodButton('email', 'Email')),
+                          Expanded(child: _methodButton('phone', 'Phone')),
                         ],
-
-                        if (_codeRequested) ...[
-                          const SizedBox(height: 20),
-
-                          // Dev-mode banner: only shown when the backend runs
-                          // with DEV_MODE=true and actually returned a code.
-                          if (_simulatedCode != null)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade50,
-                              border: Border.all(color: Colors.amber.shade300),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  '🚧 Dev mode -- no real email or SMS is sent yet.',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  selectedMethod == 'email'
-                                      ? 'Code: $_simulatedCode'
-                                      : 'Code (sent to $_phoneForDisplay): $_simulatedCode',
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children:
-                                List.generate(6, (i) => _codeBox(i)),
-                          ),
-                          const SizedBox(height: 20),
-
-                          TextField(
-                            controller: newPasswordController,
-                            obscureText: _hidePassword,
-                            decoration: InputDecoration(
-                              labelText: "New Password",
-                              filled: true,
-                              fillColor: Colors.grey.shade100,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _hidePassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                  color: const Color(0xFF959B7D),
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _hidePassword = !_hidePassword;
-                                  });
-                                },
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: confirmPasswordController,
-                            obscureText: _hidePassword,
-                            decoration: InputDecoration(
-                              labelText: "Confirm New Password",
-                              filled: true,
-                              fillColor: Colors.grey.shade100,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE89CB0),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                              ),
-                              onPressed:
-                                  _isResetting ? null : _handleResetPassword,
-                              child: _isResetting
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text(
-                                      "Reset Password",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _codeRequested = false;
-                              });
-                            },
-                            child: const Text(
-                              "Use a different email or method",
-                              style: TextStyle(color: Color(0xFF959B7D)),
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 28),
+                    ElevatedButton(
+                      style: DA.primary(),
+                      onPressed: _isRequesting ? null : _handleRequestCode,
+                      child: _isRequesting
+                          ? DA.buttonSpinner
+                          : const Text('Send reset code'),
+                    ),
+                  ],
+
+                  if (_codeRequested) ...[
+                    const SizedBox(height: 20),
+
+                    // Dev-mode banner: only shown when the backend runs with
+                    // DEV_MODE=true and actually returned a code.
+                    if (_simulatedCode != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: DA.pendingBg,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Dev mode: no real email or SMS is sent yet.',
+                              style: DA.body(13, color: DA.pendingInk, weight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              selectedMethod == 'email'
+                                  ? 'Code: $_simulatedCode'
+                                  : 'Code (sent to $_phoneForDisplay): $_simulatedCode',
+                              style: DA.body(15, color: DA.pendingInk),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    DA.label('Reset code'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(6, (i) => _codeBox(i)),
+                    ),
+                    const SizedBox(height: 20),
+
+                    DA.label('New password'),
+                    TextField(
+                      controller: newPasswordController,
+                      obscureText: _hidePassword,
+                      style: DA.body(16),
+                      decoration: DA.input(
+                        suffix: IconButton(
+                          tooltip: _hidePassword ? 'Show password' : 'Hide password',
+                          icon: Icon(
+                            _hidePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                            color: DA.sage,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _hidePassword = !_hidePassword;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    DA.label('Confirm new password'),
+                    TextField(
+                      controller: confirmPasswordController,
+                      obscureText: _hidePassword,
+                      style: DA.body(16),
+                      decoration: DA.input(),
+                    ),
+                    const SizedBox(height: 28),
+
+                    ElevatedButton(
+                      style: DA.primary(),
+                      onPressed: _isResetting ? null : _handleResetPassword,
+                      child: _isResetting
+                          ? DA.buttonSpinner
+                          : const Text('Reset password'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: DA.rose,
+                        minimumSize: const Size.fromHeight(48),
+                        textStyle: DA.body(15, weight: FontWeight.w700),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _codeRequested = false;
+                        });
+                      },
+                      child: const Text('Use a different email or method'),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

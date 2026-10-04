@@ -23,13 +23,7 @@ class OnboardingScreen extends StatelessWidget {
 
 
           // Background Image (Clear - No Blur)
-          Image.asset(
-
-            'assets/images/backgrounds/background.jpeg',
-
-            fit: BoxFit.cover,
-
-          ),
+          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
 
 
 
@@ -85,7 +79,7 @@ class OnboardingScreen extends StatelessWidget {
 
                       fontWeight: FontWeight.bold,
 
-                      color: Color(0xFF959B7D),
+                      color: Color(0xFF6E7B5F),
 
                     ),
 
@@ -111,7 +105,7 @@ class OnboardingScreen extends StatelessWidget {
 
                       fontWeight: FontWeight.bold,
 
-                      color: Color(0xFF959B7D),
+                      color: Color(0xFF6E7B5F),
 
                     ),
 
@@ -191,7 +185,7 @@ class OnboardingScreen extends StatelessWidget {
 
                       style: ElevatedButton.styleFrom(
 
-                        backgroundColor: const Color(0xFFE89CB0),
+                        backgroundColor: const Color(0xFFB04F6C),
 
                         shape: RoundedRectangleBorder(
 
@@ -262,7 +256,7 @@ class OnboardingScreen extends StatelessWidget {
 
                       style: ElevatedButton.styleFrom(
 
-                        backgroundColor: const Color(0xFF959B7D),
+                        backgroundColor: const Color(0xFF6E7B5F),
 
                         shape: RoundedRectangleBorder(
 
@@ -348,7 +342,7 @@ class OnboardingScreen extends StatelessWidget {
 
                       style: TextStyle(
 
-                        color: Color(0xFF959B7D),
+                        color: Color(0xFF6E7B5F),
 
                         fontSize: 16,
 
@@ -449,7 +443,7 @@ class OnboardingScreen extends StatelessWidget {
 
                     fontWeight: FontWeight.bold,
 
-                    color: Color(0xFF959B7D),
+                    color: Color(0xFF6E7B5F),
 
                   ),
 

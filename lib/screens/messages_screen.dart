@@ -99,7 +99,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE89CB0),
+        backgroundColor: const Color(0xFFB04F6C),
         title: const Text(
           "Contact Doctor 🩺",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -108,12 +108,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ),
       body: Stack(
         children: [
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-          ),
+          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
           Container(color: Colors.white.withOpacity(0.30)),
           Column(
             children: [
@@ -173,8 +168,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
             constraints: const BoxConstraints(maxWidth: 300),
             decoration: BoxDecoration(
               color: isPatient
-                  ? const Color(0xFFE89CB0)
-                  : const Color(0xFF959B7D),
+                  ? const Color(0xFFB04F6C)
+                  : const Color(0xFF6E7B5F),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -218,7 +213,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.medical_services, color: Color(0xFF959B7D)),
+          const Icon(Icons.medical_services, color: Color(0xFF6E7B5F)),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
@@ -235,7 +230,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               height: 45,
               width: 45,
               decoration: const BoxDecoration(
-                color: Color(0xFFE89CB0),
+                color: Color(0xFFB04F6C),
                 shape: BoxShape.circle,
               ),
               child: _isSending

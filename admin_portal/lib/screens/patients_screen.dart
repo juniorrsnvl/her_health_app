@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/design_a.dart';
 import 'login_screen.dart';
 
 class PatientsScreen extends StatefulWidget {
@@ -76,8 +77,10 @@ class _PatientsScreenState extends State<PatientsScreen> {
   void _showPatientDetails(Map<String, dynamic> patient) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: DA.ground,
+      constraints: const BoxConstraints(maxWidth: 640),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         final firstName = patient['first_name'] as String? ?? '';
@@ -88,27 +91,44 @@ class _PatientsScreenState extends State<PatientsScreen> {
         final emergencyPhone = patient['emergency_contact_phone'] as String?;
 
         return Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '$firstName $lastName',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  DA.initials(firstName, lastName, size: 52),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text('$firstName $lastName'.trim(), style: DA.heading(24)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: DA.card(),
+                child: Column(
+                  children: [
+                    _detailRow('Date of birth', dob ?? 'Not provided'),
+                    _detailRow('Phone', phone ?? 'Not provided'),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
-              _detailRow('Date of birth', dob ?? 'Not provided'),
-              _detailRow('Phone', phone ?? 'Not provided'),
-              const Divider(height: 32),
-              const Text(
-                'Emergency contact',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text('Emergency contact', style: DA.heading(17, color: DA.sage)),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: DA.card(),
+                child: Column(
+                  children: [
+                    _detailRow('Name', emergencyName ?? 'Not provided'),
+                    _detailRow('Phone', emergencyPhone ?? 'Not provided'),
+                  ],
+                ),
               ),
-              const SizedBox(height: 8),
-              _detailRow('Name', emergencyName ?? 'Not provided'),
-              _detailRow('Phone', emergencyPhone ?? 'Not provided'),
-              const SizedBox(height: 16),
             ],
           ),
         );
@@ -118,14 +138,24 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
   Widget _detailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 130,
-            child: Text(label, style: const TextStyle(color: Colors.black54)),
+            width: 140,
+            child: Text(label, style: DA.body(15, color: DA.quiet)),
           ),
-          Expanded(child: Text(value)),
+          Expanded(
+            child: Text(
+              value,
+              style: DA.body(
+                15,
+                weight: FontWeight.w600,
+                color: value == 'Not provided' ? DA.quiet : DA.ink,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -134,103 +164,141 @@ class _PatientsScreenState extends State<PatientsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Patients'),
-        backgroundColor: Colors.pink.shade100,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search by name',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade100,
+      backgroundColor: DA.ground,
+      appBar: DA.adminBar('Patients'),
+      body: RefreshIndicator(
+        color: DA.rose,
+        onRefresh: _loadPatients,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
+          children: [
+            DA.page(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Patients', style: DA.heading(30)),
+                  const SizedBox(height: 6),
+                  Text(
+                    _isLoading
+                        ? 'Loading patients...'
+                        : '${_patients.length} registered ${_patients.length == 1 ? 'patient' : 'patients'}.',
+                    style: DA.body(16, color: DA.muted),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    style: DA.body(16),
+                    decoration: DA.input(
+                      hint: 'Search by name',
+                      prefix: const Icon(Icons.search_rounded, color: DA.sage),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _buildBody(),
+                ],
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
             ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadPatients,
-              child: _buildBody(),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Padding(
+        padding: EdgeInsets.all(48),
+        child: Center(child: CircularProgressIndicator(color: DA.rose)),
+      );
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadPatients,
-              child: const Text('Retry'),
+      return Column(
+        children: [
+          const SizedBox(height: 40),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: DA.body(15, color: DA.rejectedInk),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            style: DA.outline().copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size(140, 48)),
             ),
-          ],
-        ),
+            onPressed: _loadPatients,
+            child: const Text('Try again'),
+          ),
+        ],
       );
     }
 
     final patients = _filteredPatients;
 
     if (patients.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 100),
-          Center(
-            child: Text(
-              _searchQuery.isEmpty ? 'No patients yet.' : 'No matches found.',
-            ),
-          ),
-        ],
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: DA.card(),
+        child: Text(
+          _searchQuery.isEmpty ? 'No patients yet.' : 'No matches found.',
+          textAlign: TextAlign.center,
+          style: DA.body(16, color: DA.muted),
+        ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: patients.length,
-      itemBuilder: (context, index) {
-        final patient = patients[index] as Map<String, dynamic>;
+    return Column(
+      children: patients.map((p) {
+        final patient = p as Map<String, dynamic>;
         final firstName = patient['first_name'] as String? ?? '';
         final lastName = patient['last_name'] as String? ?? '';
         final phone = patient['phone'] as String?;
-        final initial = firstName.isNotEmpty ? firstName[0].toUpperCase() : '?';
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.pink.shade100,
-              child: Text(initial, style: const TextStyle(color: Colors.black87)),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Material(
+            color: DA.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: DA.border, width: 1.5),
             ),
-            title: Text('$firstName $lastName'),
-            subtitle: Text(phone ?? 'No phone on file'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showPatientDetails(patient),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => _showPatientDetails(patient),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    DA.initials(firstName, lastName),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$firstName $lastName'.trim(),
+                            style: DA.body(16, weight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            phone ?? 'No phone on file',
+                            style: DA.body(15, color: DA.quiet),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, color: DA.quiet),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
-      },
+      }).toList(),
     );
   }
 }

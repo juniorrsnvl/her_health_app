@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../theme/design_a.dart';
 import 'login_screen.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -62,18 +63,20 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     }
   }
 
+  /// Email / Phone switch. Switching clears the boxes, since each method
+  /// has its own code.
   Widget methodToggle() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-      ),
       padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: DA.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: DA.border, width: 1.5),
+      ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          _methodButton('email', 'Email 📧'),
-          _methodButton('phone', 'Phone 📱'),
+          Expanded(child: _methodButton('email', 'Email')),
+          Expanded(child: _methodButton('phone', 'Phone')),
         ],
       ),
     );
@@ -81,24 +84,32 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   Widget _methodButton(String method, String label) {
     final isSelected = selectedMethod == method;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedMethod = method;
-          _clearCodeBoxes();
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE89CB0) : Colors.transparent,
-          borderRadius: BorderRadius.circular(26),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF959B7D),
-            fontWeight: FontWeight.bold,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      child: Material(
+        color: isSelected ? DA.rose : Colors.transparent,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: () {
+            setState(() {
+              selectedMethod = method;
+              _clearCodeBoxes();
+            });
+          },
+          child: SizedBox(
+            height: 44,
+            child: Center(
+              child: Text(
+                label,
+                style: DA.body(
+                  15,
+                  weight: FontWeight.w700,
+                  color: isSelected ? Colors.white : DA.muted,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -107,26 +118,22 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   Widget codeBox(int index) {
     return SizedBox(
-      width: 45,
-      height: 55,
+      width: 48,
+      height: 58,
       child: TextField(
         controller: codeControllers[index],
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         maxLength: 1,
+        style: DA.heading(22),
         onChanged: (value) {
           if (value.isNotEmpty && index < 5) {
             FocusScope.of(context).nextFocus();
           }
         },
-        decoration: InputDecoration(
+        decoration: DA.input().copyWith(
           counterText: "",
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide.none,
-          ),
+          contentPadding: EdgeInsets.zero,
         ),
       ),
     );
@@ -212,146 +219,97 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-          ),
-          Container(color: Colors.white.withOpacity(0.25)),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(25),
+      backgroundColor: DA.ground,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Image.asset('assets/images/logo/logo.png', height: 110),
-                  const SizedBox(height: 20),
-
-                  const Text(
-                    "Verify Your Account 💌",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF959B7D),
-                    ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: DA.backButton(context),
                   ),
-
-                  const SizedBox(height: 10),
-
-                  const Text(
-                    "Choose how you'd like to verify:",
-                    style: TextStyle(fontSize: 15, color: Colors.black87),
+                  const SizedBox(height: 16),
+                  Text('Verify your account', style: DA.heading(30)),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Choose how you'd like to get your code.",
+                    style: DA.body(16, color: DA.muted),
                   ),
-
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
 
                   methodToggle(),
-
                   const SizedBox(height: 20),
 
                   // Dev-mode banner: only shown when the backend runs with
                   // DEV_MODE=true and actually returned a code.
                   if (_currentSimulatedCode.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
-                      border: Border.all(color: Colors.amber.shade300),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '🚧 Dev mode -- no real email or SMS is sent yet.',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: DA.pendingBg,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Dev mode: no real email or SMS is sent yet.',
+                            style: DA.body(13, color: DA.pendingInk, weight: FontWeight.w700),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text('Code: $_currentSimulatedCode'),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            'Code: $_currentSimulatedCode',
+                            style: DA.body(15, color: DA.pendingInk),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 10),
                   Text(
                     selectedMethod == 'email'
-                        ? "Code sent to your email:"
-                        : "Code sent to your phone:",
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
+                        ? "Code sent to your email"
+                        : "Code sent to your phone",
+                    style: DA.body(15, color: DA.muted),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     _destination,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFE89CB0),
-                    ),
+                    style: DA.body(17, color: DA.rose, weight: FontWeight.w700),
                   ),
-
                   const SizedBox(height: 20),
 
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: List.generate(6, (i) => codeBox(i)),
                   ),
+                  const SizedBox(height: 32),
 
-                  const SizedBox(height: 35),
-
-                  SizedBox(
-                    width: 280,
-                    height: 55,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE89CB0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      onPressed: _isVerifying ? null : _handleVerify,
-                      child: _isVerifying
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              "Verify",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
+                  ElevatedButton(
+                    style: DA.primary(),
+                    onPressed: _isVerifying ? null : _handleVerify,
+                    child: _isVerifying ? DA.buttonSpinner : const Text('Verify'),
                   ),
-
-                  const SizedBox(height: 16),
-
+                  const SizedBox(height: 8),
                   TextButton(
-                    onPressed: _isResending ? null : _handleResend,
-                    child: Text(
-                      _isResending ? "Sending..." : "Resend Codes 🔄",
-                      style: const TextStyle(
-                        color: Color(0xFF959B7D),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: DA.rose,
+                      minimumSize: const Size.fromHeight(48),
+                      textStyle: DA.body(15, weight: FontWeight.w700),
                     ),
+                    onPressed: _isResending ? null : _handleResend,
+                    child: Text(_isResending ? 'Sending...' : 'Resend codes'),
                   ),
                 ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

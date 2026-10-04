@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../constants/colors.dart';
+import '../theme/design_a.dart';
 import '../services/auth_service.dart';
 import 'welcome_screen.dart';
 import 'health_setup_screen.dart';
@@ -63,64 +63,27 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background image (NOT BLURRED)
-          Image.asset(
-            'assets/images/backgrounds/background.jpeg',
-            fit: BoxFit.cover,
-          ),
-
-          // Slight transparent overlay for readability
-          Container(
-            color: Colors.white.withOpacity(0.25),
-          ),
-
-          // Content
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo
-                Image.asset(
-                  'assets/images/logo/logo.png',
-                  height: 160,
-                ),
-
-                const SizedBox(height: 25),
-
-                Text(
-                  "Her Health",
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.sageGreen,
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                Text(
-                  "Your wellness journey starts here",
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                const SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ],
+      backgroundColor: DA.ground,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset('assets/images/logo/logo.png', height: 140),
+            const SizedBox(height: 20),
+            Text('Her Health', style: DA.heading(36)),
+            const SizedBox(height: 8),
+            Text(
+              'Your wellness journey starts here',
+              style: DA.body(17, color: DA.muted),
             ),
-          ),
-        ],
+            const SizedBox(height: 32),
+            const SizedBox(
+              height: 24,
+              width: 24,
+              child: CircularProgressIndicator(strokeWidth: 2, color: DA.rose),
+            ),
+          ],
+        ),
       ),
     );
   }
