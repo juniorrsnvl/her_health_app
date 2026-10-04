@@ -30,7 +30,7 @@ class SettingsScreen extends StatelessWidget {
 
     if (confirmed != true) return;
 
-    AuthService.logout();
+    await AuthService.logout();
 
     if (!context.mounted) return;
 

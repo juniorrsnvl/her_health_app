@@ -102,6 +102,15 @@ class ApiService {
     );
   }
 
+  /// Authenticated DELETE request.
+  static Future<http.Response> authorizedDelete(String path) async {
+    final token = await getToken();
+    return http.delete(
+      Uri.parse('$baseUrl$path'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+  }
+
   static Map<String, dynamic>? _tryDecode(String body) {
     try {
       return jsonDecode(body) as Map<String, dynamic>;

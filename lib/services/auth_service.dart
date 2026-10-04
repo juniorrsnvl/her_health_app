@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// An error from the backend, carrying the HTTP status code so callers can
 /// react to specific cases (e.g. an unverified account at login).
@@ -34,10 +35,9 @@ class AuthException implements Exception {
 class AuthService {
   static const String baseUrl = 'http://127.0.0.1:8000';
 
-  /// The login token, held in memory only for now -- it is lost when the
-  /// app restarts. Persistent storage (flutter_secure_storage) should be
-  /// added when authenticated endpoints such as the health journey are
-  /// wired up.
+  /// The login token. Kept in memory while the app runs, and also saved
+  /// to device storage (see restoreSession) so a refresh keeps the
+  /// patient logged in.
   static String? accessToken;
 
   static bool get isLoggedIn => accessToken != null;
@@ -46,9 +46,55 @@ class AuthService {
   /// greetings like "Welcome, Ada". Null if unknown.
   static String? firstName;
 
-  static void logout() {
+  // The login token is saved on the device so a browser refresh or app
+  // restart doesn't log the patient out. On web, shared_preferences
+  // writes straight to the browser's Local Storage.
+  static const _tokenKey = 'patient_access_token';
+
+  static Future<void> logout() async {
     accessToken = null;
     firstName = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+    } catch (e) {
+      // ignore: avoid_print
+      print('AUTH STORAGE: could not clear saved login: $e');
+    }
+  }
+
+  /// Called once at startup. Restores a saved login if the server still
+  /// accepts the token. Returns true if the patient is logged in.
+  static Future<bool> restoreSession() async {
+    String? saved;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      saved = prefs.getString(_tokenKey);
+    } catch (e) {
+      // ignore: avoid_print
+      print('AUTH STORAGE: could not read saved login: $e');
+      saved = null;
+    }
+    if (saved == null || saved.isEmpty) {
+      return false;
+    }
+
+    accessToken = saved;
+    try {
+      final me = await getMe();
+      final profile = me['profile'];
+      firstName = (profile is Map) ? profile['first_name'] as String? : null;
+      return true;
+    } on AuthException catch (e) {
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        // Expired or invalid token: clear it and send them to log in.
+        await logout();
+        return false;
+      }
+      // Server unreachable or similar: keep the saved login rather than
+      // forcing a logout because of a network blip.
+      return true;
+    }
   }
 
   /// Registers a new account. On success, returns a map containing
@@ -172,6 +218,16 @@ class AuthService {
       firstName = (profile is Map) ? profile['first_name'] as String? : null;
     } catch (_) {
       firstName = null;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
+    } catch (e) {
+      // If saving fails, the patient stays logged in for this session;
+      // they just won't survive a refresh. Printed so it's never silent.
+      // ignore: avoid_print
+      print('AUTH STORAGE: could not save login: $e');
     }
 
     return token;
@@ -467,6 +523,65 @@ class AuthService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(body),
+      );
+    } catch (e) {
+      throw AuthException(
+        'Could not reach the server. Check your connection and try again.',
+      );
+    }
+
+    return _handleResponseRaw(response);
+  }
+
+  // ===========================================================
+  // Reminders
+  // ===========================================================
+
+  static Future<List<dynamic>> getReminders() async {
+    final data = await _authorizedGetRaw('/reminders');
+    return (data is List) ? data : [];
+  }
+
+  static Future<void> addReminder({
+    required String title,
+    String? notes,
+    required DateTime remindAt,
+  }) async {
+    await _authorizedPostRaw('/reminders', {
+      'title': title,
+      if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+      'remind_at': remindAt.toIso8601String(),
+    });
+  }
+
+  static Future<void> setReminderDone(int id, bool isDone) async {
+    await _authorizedPutRaw('/reminders/$id/done', {'is_done': isDone});
+  }
+
+  static Future<void> deleteReminder(int id) async {
+    await _authorizedDeleteRaw('/reminders/$id');
+  }
+
+  // ===========================================================
+  // Health articles (written by staff in the admin portal)
+  // ===========================================================
+
+  static Future<List<dynamic>> getArticles() async {
+    final data = await _authorizedGetRaw('/articles');
+    return (data is List) ? data : [];
+  }
+
+  static Future<dynamic> _authorizedDeleteRaw(String path) async {
+    final token = accessToken;
+    if (token == null) {
+      throw AuthException('You need to be logged in to do that.');
+    }
+
+    late http.Response response;
+    try {
+      response = await http.delete(
+        Uri.parse('$baseUrl$path'),
+        headers: {'Authorization': 'Bearer $token'},
       );
     } catch (e) {
       throw AuthException(

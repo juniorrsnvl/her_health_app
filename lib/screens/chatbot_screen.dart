@@ -4,6 +4,8 @@ import 'appointments_screen.dart';
 import 'messages_screen.dart';
 import 'health_profile_screen.dart';
 import 'settings_screen.dart';
+import 'reminders_screen.dart';
+import 'articles_screen.dart';
 
 
 class ChatbotScreen extends StatefulWidget {
@@ -902,18 +904,42 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
 
 
-          drawerItem(
-            Icons.notifications,
-            "Reminders",
+          ListTile(
+            leading: const Icon(
+              Icons.notifications,
+              color: Color(0xFF959B7D),
+            ),
+            title: const Text("Reminders"),
+            onTap: () {
+              Navigator.pop(context); // close the drawer first
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RemindersScreen(),
+                ),
+              );
+            },
           ),
 
 
 
 
 
-          drawerItem(
-            Icons.article,
-            "Health Articles",
+          ListTile(
+            leading: const Icon(
+              Icons.article,
+              color: Color(0xFF959B7D),
+            ),
+            title: const Text("Health Articles"),
+            onTap: () {
+              Navigator.pop(context); // close the drawer first
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ArticlesScreen(),
+                ),
+              );
+            },
           ),
 
 
