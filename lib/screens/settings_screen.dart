@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../theme/design_a.dart';
 import 'health_profile_screen.dart';
@@ -37,6 +39,91 @@ class SettingsScreen extends StatelessWidget {
 
     // Clear every screen behind us so the back button can't return to a
     // logged-in screen.
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  /// Shows everything the app holds about the patient, with a Copy button.
+  Future<void> _showMyData(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: DA.ground,
+        title: Text('Your data', style: DA.heading(22)),
+        content: SizedBox(
+          width: 560,
+          height: 420,
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: AuthService.exportMyData(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator(color: DA.rose));
+              }
+              if (snapshot.hasError) {
+                return Text(snapshot.error.toString(), style: DA.body(15, color: DA.rejectedInk));
+              }
+              final pretty = const JsonEncoder.withIndent('  ').convert(snapshot.data);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'This is everything Her Health holds about you. Copy it to keep a record.',
+                    style: DA.body(14, color: DA.muted),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: DA.card(radius: 12),
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          pretty,
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    style: DA.outline(),
+                    icon: const Icon(Icons.copy_rounded),
+                    label: const Text('Copy all'),
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: pretty));
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Copied to clipboard.')),
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAccount(BuildContext context) async {
+    final deleted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => const _DeleteAccountDialog(),
+    );
+    if (deleted != true) return;
+
+    await AuthService.logout();
+    if (!context.mounted) return;
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -97,9 +184,137 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
             ),
+
+            const SizedBox(height: 28),
+            Text('Your data', style: DA.heading(19, color: DA.sage)),
+            const SizedBox(height: 12),
+            Container(
+              decoration: DA.card(),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                    leading: const Icon(Icons.download_rounded, color: DA.sage),
+                    title: Text('Download my data', style: DA.body(16, weight: FontWeight.w700)),
+                    subtitle: Text('See and copy everything we hold about you', style: DA.body(14, color: DA.quiet)),
+                    onTap: () => _showMyData(context),
+                  ),
+                  const Divider(height: 1, color: DA.divider),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                    leading: const Icon(Icons.delete_outline_rounded, color: DA.rejectedInk),
+                    title: Text(
+                      'Delete my account',
+                      style: DA.body(16, color: DA.rejectedInk, weight: FontWeight.w700),
+                    ),
+                    subtitle: Text('Permanently remove your account and data', style: DA.body(14, color: DA.quiet)),
+                    onTap: () => _deleteAccount(context),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Asks for the password before permanently deleting the account.
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final passwordController = TextEditingController();
+  bool _isDeleting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _delete() async {
+    if (passwordController.text.isEmpty) {
+      setState(() => _error = 'Enter your password to confirm.');
+      return;
+    }
+    setState(() {
+      _isDeleting = true;
+      _error = null;
+    });
+    try {
+      await AuthService.deleteMyAccount(passwordController.text);
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isDeleting = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: DA.ground,
+      title: Text('Delete your account?', style: DA.heading(22)),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'This permanently deletes your account, health profile, journey answers, '
+              'appointments, messages, chats and reminders. It cannot be undone.',
+              style: DA.body(15, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            DA.label('Your password'),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              style: DA.body(16),
+              decoration: DA.input(),
+              onSubmitted: (_) {
+                if (!_isDeleting) _delete();
+              },
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(_error!, style: DA.body(14, color: DA.rejectedInk, weight: FontWeight.w600)),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isDeleting ? null : () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _isDeleting ? null : _delete,
+          child: _isDeleting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: DA.rejectedInk),
+                )
+              : Text(
+                  'Delete permanently',
+                  style: DA.body(15, color: DA.rejectedInk, weight: FontWeight.w700),
+                ),
+        ),
+      ],
     );
   }
 }

@@ -58,6 +58,23 @@ class _Cursor:
 
     def execute(self, sql, params=()):
         s = " ".join(sql.split()).lower()
+        if s.startswith("select id, email, phone, role_id"):
+            u = next((u for u in self.db.users.values() if u["id"] == params[0]), None)
+            self._result = None if u is None else {k: u[k] for k in (
+                "id", "email", "phone", "role_id", "is_verified", "is_phone_verified", "is_active")}
+            return
+        if s.startswith("select * from patients where user_id"):
+            self._result = None
+            return
+        if s.startswith("select password_hash from users where id"):
+            u = next((u for u in self.db.users.values() if u["id"] == params[0]), None)
+            self._result = None if u is None else {"password_hash": u["password_hash"]}
+            return
+        if s.startswith("delete from patients where user_id"):
+            return
+        if s.startswith("delete from users where id"):
+            self.db.users = {e: u for e, u in self.db.users.items() if u["id"] != params[0]}
+            return
         if s.startswith("insert into users"):
             self.db.inserted_users.append(params)
             self._result = {"id": 1000 + len(self.db.inserted_users)}
@@ -90,7 +107,17 @@ def setup(monkeypatch):
     db = FakeDB()
     monkeypatch.setattr(auth, "get_database_connection", db.connect)
     monkeypatch.delenv("DEV_MODE", raising=False)
-    auth._failed_attempts.clear()
+    # Lockout counts live in the database in production; here an in-memory
+    # dict stands in, so the lockout RULES are still tested.
+    attempts = {}
+
+    def _record(key):
+        attempts[key] = attempts.get(key, 0) + 1
+        return attempts[key]
+
+    monkeypatch.setattr(auth, "_too_many_attempts", lambda key: attempts.get(key, 0) >= auth._MAX_ATTEMPTS)
+    monkeypatch.setattr(auth, "_record_failure", _record)
+    monkeypatch.setattr(auth, "_clear_failures", lambda key: attempts.pop(key, None))
     app = FastAPI()
     app.include_router(auth.router)
     return TestClient(app), db
@@ -258,3 +285,61 @@ def test_registration_records_when_and_which_notice_was_accepted(setup):
     params = db.inserted_users[0]
     assert params[-1] == auth.PRIVACY_NOTICE_VERSION   # which notice
     assert params[-2] is not None                      # when it was accepted
+
+
+# ---------------------------------------------------------------- data rights
+
+def _as(client, user):
+    """Make requests as this user (skips the token check)."""
+    client.app.dependency_overrides[auth.get_current_user] = lambda: {
+        "user_id": user["id"], "role_id": user["role_id"]}
+
+
+def test_export_never_includes_password_or_codes(setup):
+    client, db = setup
+    user = db.add_user("ada@test.com", "right")
+    user["reset_code"] = "123456"
+    _as(client, user)
+    r = client.get("/auth/me/export")
+    assert r.status_code == 200
+    body = r.text
+    assert "ada@test.com" in body
+    assert "password_hash" not in body and "hashed" not in body and "123456" not in body
+
+
+def test_delete_needs_the_correct_password(setup):
+    client, db = setup
+    user = db.add_user("ada@test.com", "right")
+    _as(client, user)
+    r = client.post("/auth/me/delete", json={"password": "wrong"})
+    assert r.status_code == 401
+    assert "ada@test.com" in db.users           # still there
+
+
+def test_delete_removes_the_account(setup):
+    client, db = setup
+    user = db.add_user("ada@test.com", "right")
+    _as(client, user)
+    r = client.post("/auth/me/delete", json={"password": "right"})
+    assert r.status_code == 200
+    assert "ada@test.com" not in db.users
+
+
+def test_staff_cannot_delete_their_account_from_the_app(setup):
+    client, db = setup
+    staff = db.add_user("doc@test.com", "right", role_id=3)
+    _as(client, staff)
+    r = client.post("/auth/me/delete", json={"password": "right"})
+    assert r.status_code == 403
+    assert "doc@test.com" in db.users
+
+
+def test_five_wrong_delete_passwords_lock_it(setup):
+    client, db = setup
+    user = db.add_user("ada@test.com", "right")
+    _as(client, user)
+    for _ in range(5):
+        client.post("/auth/me/delete", json={"password": "wrong"})
+    r = client.post("/auth/me/delete", json={"password": "right"})
+    assert r.status_code == 429
+    assert "ada@test.com" in db.users

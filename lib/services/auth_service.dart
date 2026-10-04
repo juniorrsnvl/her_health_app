@@ -571,6 +571,21 @@ class AuthService {
   // Health articles (written by staff in the admin portal)
   // ===========================================================
 
+  // ===========================================================
+  // Patients' data rights (POPIA)
+  // ===========================================================
+
+  /// Everything the app holds about the logged-in patient.
+  static Future<Map<String, dynamic>> exportMyData() async {
+    final data = await _authorizedGetRaw('/auth/me/export');
+    return (data is Map<String, dynamic>) ? data : <String, dynamic>{};
+  }
+
+  /// Permanently deletes the account and all its data. Needs the password.
+  static Future<void> deleteMyAccount(String password) async {
+    await _authorizedPostRaw('/auth/me/delete', {'password': password});
+  }
+
   static Future<List<dynamic>> getArticles() async {
     final data = await _authorizedGetRaw('/articles');
     return (data is List) ? data : [];

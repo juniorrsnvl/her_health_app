@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from config.database import get_database_connection
 from utils.dependencies import get_current_user
+from utils.audit import log_access
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
@@ -187,6 +188,8 @@ def list_threads(current_user: dict = Depends(get_current_user)):
             """
         )
         rows = cursor.fetchall()
+        log_access(cursor, current_user["user_id"], "list_threads")
+        connection.commit()
 
         return [
             {
@@ -227,6 +230,7 @@ def get_patient_thread(
             """,
             (patient_id,),
         )
+        log_access(cursor, current_user["user_id"], "view_messages", patient_id)
         connection.commit()
 
         cursor.execute(
@@ -271,6 +275,7 @@ def reply_to_patient(
             (patient_id, current_user["user_id"], request.message),
         )
         row = cursor.fetchone()
+        log_access(cursor, current_user["user_id"], "reply_message", patient_id)
         connection.commit()
 
         return _row_to_response(row)

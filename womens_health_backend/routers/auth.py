@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, EmailStr
 from psycopg2.extras import Json
 from config.database import get_database_connection
@@ -116,32 +117,58 @@ def _dev_mode() -> bool:
 # and only covers a single server process -- fine for this project, but a
 # multi-server deployment would need a shared store (e.g. Redis).
 _MAX_ATTEMPTS = 5
-_LOCKOUT_SECONDS = 15 * 60
-_failed_attempts: dict = {}
+
+# Failed-attempt counts live in the database (failed_attempts table), so
+# lockouts survive server restarts. The 15-minute window is in the SQL.
 
 
 def _too_many_attempts(key: str) -> bool:
-    entry = _failed_attempts.get(key)
-    if not entry:
-        return False
-    count, first_failure = entry
-    if time.time() - first_failure > _LOCKOUT_SECONDS:
-        _failed_attempts.pop(key, None)
-        return False
-    return count >= _MAX_ATTEMPTS
+    connection = get_database_connection()
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT count FROM failed_attempts "
+            "WHERE key = %s AND first_failure > NOW() - INTERVAL '15 minutes'",
+            (key,),
+        )
+        row = cursor.fetchone()
+        return bool(row) and row["count"] >= _MAX_ATTEMPTS
+    finally:
+        connection.close()
 
 
 def _record_failure(key: str) -> int:
-    now = time.time()
-    count, first_failure = _failed_attempts.get(key, (0, now))
-    if now - first_failure > _LOCKOUT_SECONDS:
-        count, first_failure = 0, now
-    _failed_attempts[key] = (count + 1, first_failure)
-    return count + 1
+    connection = get_database_connection()
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            """
+            INSERT INTO failed_attempts (key, count, first_failure)
+            VALUES (%s, 1, NOW())
+            ON CONFLICT (key) DO UPDATE SET
+              count = CASE WHEN failed_attempts.first_failure < NOW() - INTERVAL '15 minutes'
+                           THEN 1 ELSE failed_attempts.count + 1 END,
+              first_failure = CASE WHEN failed_attempts.first_failure < NOW() - INTERVAL '15 minutes'
+                           THEN NOW() ELSE failed_attempts.first_failure END
+            RETURNING count
+            """,
+            (key,),
+        )
+        count = cursor.fetchone()["count"]
+        connection.commit()
+        return count
+    finally:
+        connection.close()
 
 
 def _clear_failures(key: str):
-    _failed_attempts.pop(key, None)
+    connection = get_database_connection()
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("DELETE FROM failed_attempts WHERE key = %s", (key,))
+        connection.commit()
+    finally:
+        connection.close()
 
 
 def _generate_code() -> str:
@@ -783,4 +810,115 @@ def update_my_profile(
 
     finally:
         cursor.close()
+        connection.close()
+
+
+# ===========================================================
+# Patients' data rights (POPIA): download a copy, delete the account
+# ===========================================================
+
+# Tables holding a patient's own rows, all linked by patient_id. Fixed list,
+# never built from user input.
+_PATIENT_TABLES = (
+    "health_journeys",
+    "health_journey_entries",
+    "appointments",
+    "chat_messages",
+    "messages",
+    "reminders",
+    "patient_services",
+)
+
+
+@router.get("/me/export")
+def export_my_data(current_user: dict = Depends(get_current_user)):
+    """Everything the app holds about the logged-in patient, as JSON.
+    Never includes the password hash or verification/reset codes."""
+    connection = get_database_connection()
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT id, email, phone, role_id, is_verified, is_phone_verified,
+                   is_active, created_at, updated_at, privacy_accepted_at, privacy_version
+            FROM users WHERE id = %s
+            """,
+            (current_user["user_id"],),
+        )
+        account = cursor.fetchone()
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found.")
+
+        cursor.execute("SELECT * FROM patients WHERE user_id = %s", (current_user["user_id"],))
+        profile = cursor.fetchone()
+
+        data = {
+            "exported_at": datetime.utcnow().isoformat() + "Z",
+            "account": account,
+            "profile": profile,
+        }
+        if profile:
+            for table in _PATIENT_TABLES:
+                cursor.execute(
+                    f"SELECT * FROM {table} WHERE patient_id = %s ORDER BY id",
+                    (profile["id"],),
+                )
+                data[table] = cursor.fetchall()
+
+        return jsonable_encoder(data)
+    finally:
+        connection.close()
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str
+
+
+@router.post("/me/delete")
+def delete_my_account(
+    request: DeleteAccountRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Permanently deletes the patient's account and all their data.
+    Every patient table cascades from patients, so deleting the profile
+    and then the account removes it all.
+    Needs the password again; 5 wrong tries lock it like login does."""
+    if current_user["role_id"] != 1:
+        raise HTTPException(
+            status_code=403,
+            detail="Staff accounts are removed by the practice, not from the app.",
+        )
+
+    delete_key = f"delete:{current_user['user_id']}"
+    if _too_many_attempts(delete_key):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many incorrect passwords. Please try again in 15 minutes.",
+        )
+
+    connection = get_database_connection()
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT password_hash FROM users WHERE id = %s",
+            (current_user["user_id"],),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Account not found.")
+
+        if not verify_password(request.password, row["password_hash"]):
+            _record_failure(delete_key)
+            raise HTTPException(status_code=401, detail="Incorrect password.")
+
+        # Order matters: the patient's own messages reference their user id
+        # (messages.sender_user_id, no delete rule). Deleting the patient
+        # profile first cascades all their data, messages included; then the
+        # account can go. Both happen in one transaction.
+        cursor.execute("DELETE FROM patients WHERE user_id = %s", (current_user["user_id"],))
+        cursor.execute("DELETE FROM users WHERE id = %s", (current_user["user_id"],))
+        connection.commit()
+        _clear_failures(delete_key)
+        return {"message": "Your account and all your data have been deleted."}
+    finally:
         connection.close()

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from config.database import get_database_connection
 from utils.dependencies import get_current_user
+from utils.audit import log_access
 
 
 router = APIRouter(
@@ -322,7 +323,10 @@ def get_all_patients(
             """
         )
 
-        return cursor.fetchall()
+        patients = cursor.fetchall()
+        log_access(cursor, current_user["user_id"], "list_patients")
+        connection.commit()
+        return patients
 
     finally:
         cursor.close()
@@ -370,6 +374,8 @@ def get_patient_by_id(
                 detail="Patient not found."
             )
 
+        log_access(cursor, current_user["user_id"], "view_patient", patient_id)
+        connection.commit()
         return patient
 
     finally:
