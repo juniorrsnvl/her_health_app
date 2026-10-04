@@ -1,491 +1,145 @@
 import 'package:flutter/material.dart';
+import '../theme/design_a.dart';
 import 'register_screen.dart';
 import 'login_screen.dart';
 import 'information_screen.dart';
 
-
 class OnboardingScreen extends StatelessWidget {
-
   const OnboardingScreen({super.key});
-
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
-
-      body: Stack(
-
-        fit: StackFit.expand,
-
-        children: [
-
-
-          // Background Image (Clear - No Blur)
-          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
-
-
-
-          // Soft overlay
-          Container(
-
-            color: Colors.white.withOpacity(0.30),
-
-          ),
-
-
-
-
-          Center(
-
-            child: SingleChildScrollView(
-
-              padding: const EdgeInsets.all(25),
-
+      backgroundColor: DA.ground,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
               child: Column(
-
-                mainAxisAlignment: MainAxisAlignment.center,
-
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-
-
-
-                  // Logo
-
-                  Image.asset(
-
-                    'assets/images/logo/logo.png',
-
-                    height: 150,
-
-                  ),
-
-
-
-
-                  const SizedBox(height: 25),
-
-
-
-
-                  const Text(
-
-                    "Her Health",
-
-                    style: TextStyle(
-
-                      fontSize: 42,
-
-                      fontWeight: FontWeight.bold,
-
-                      color: Color(0xFF6E7B5F),
-
-                    ),
-
-                  ),
-
-
-
-
-                  const SizedBox(height: 10),
-
-
-
-
-                  const Text(
-
-                    "Your personal health companion",
-
+                  Image.asset('assets/images/logo/logo.png', height: 110),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Her Health',
                     textAlign: TextAlign.center,
-
-                    style: TextStyle(
-
-                      fontSize: 22,
-
-                      fontWeight: FontWeight.bold,
-
-                      color: Color(0xFF6E7B5F),
-
-                    ),
-
+                    style: DA.heading(36),
                   ),
-
-
-
-
-                  const SizedBox(height: 25),
-
-
-
-
-
-                  // Information Cards
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your personal health companion',
+                    textAlign: TextAlign.center,
+                    style: DA.body(18, color: DA.muted),
+                  ),
+                  const SizedBox(height: 28),
 
                   buildInfoCard(
-
-                    icon: "🤖",
-
-                    title: "AI Health Companion",
-
+                    icon: Icons.auto_awesome,
+                    title: 'AI Health Companion',
                     description:
-
-                    "Get trusted health information, receive personalised guidance, and ask questions anytime.",
-
+                        'Get trusted health information, receive personalised guidance, and ask questions anytime.',
                   ),
-
-
-
-
                   buildInfoCard(
-
-                    icon: "❤️",
-
-                    title: "Track Your Health",
-
+                    icon: Icons.favorite_border_rounded,
+                    title: 'Track Your Health',
                     description:
-
-                    "Monitor your menstrual cycle, pregnancy, symptoms, and appointments in one place.",
-
+                        'Monitor your menstrual cycle, pregnancy, symptoms, and appointments in one place.',
                   ),
-
-
-
-
                   buildInfoCard(
-
-                    icon: "👩‍⚕️",
-
-                    title: "Stay Connected",
-
+                    icon: Icons.medical_services_outlined,
+                    title: 'Stay Connected',
                     description:
-
-                    "Request appointments, receive reminders, and keep your health journey organised.",
-
+                        'Request appointments, receive reminders, and keep your health journey organised.',
                   ),
 
-
-
-
-                  const SizedBox(height: 30),
-
-
-
-
-
-                  // Register Button
-
-                  SizedBox(
-
-                    width: double.infinity,
-
-                    height: 55,
-
-                    child: ElevatedButton(
-
-                      style: ElevatedButton.styleFrom(
-
-                        backgroundColor: const Color(0xFFB04F6C),
-
-                        shape: RoundedRectangleBorder(
-
-                          borderRadius: BorderRadius.circular(30),
-
-                        ),
-
-                      ),
-
-
-                      onPressed: () {
-
-
-                        Navigator.push(
-
-                          context,
-
-                          MaterialPageRoute(
-
-                            builder: (context)=> const RegisterScreen(),
-
-                          ),
-
-                        );
-
-
-                      },
-
-
-                      child: const Text(
-
-                        "Create Account 🌸",
-
-                        style: TextStyle(
-
-                          color: Colors.white,
-
-                          fontSize: 18,
-
-                          fontWeight: FontWeight.bold,
-
-                        ),
-
-                      ),
-
-                    ),
-
-                  ),
-
-
-
-
-                  const SizedBox(height: 15),
-
-
-
-
-
-                  // Login Button
-
-                  SizedBox(
-
-                    width: double.infinity,
-
-                    height: 55,
-
-                    child: ElevatedButton(
-
-                      style: ElevatedButton.styleFrom(
-
-                        backgroundColor: const Color(0xFF6E7B5F),
-
-                        shape: RoundedRectangleBorder(
-
-                          borderRadius: BorderRadius.circular(30),
-
-                        ),
-
-                      ),
-
-
-                      onPressed: () {
-
-
-                        Navigator.push(
-
-                          context,
-
-                          MaterialPageRoute(
-
-                            builder: (context)=> const LoginScreen(),
-
-                          ),
-
-                        );
-
-
-                      },
-
-
-                      child: const Text(
-
-                        "Login 🌿",
-
-                        style: TextStyle(
-
-                          color: Colors.white,
-
-                          fontSize: 18,
-
-                          fontWeight: FontWeight.bold,
-
-                        ),
-
-                      ),
-
-                    ),
-
-                  ),
-
-
-
-
-
-                  const SizedBox(height: 15),
-
-
-
-
-                  TextButton(
-
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    style: DA.primary(),
                     onPressed: () {
-
-
                       Navigator.push(
-
                         context,
-
                         MaterialPageRoute(
-
-                          builder: (context)=> const InformationScreen(),
-
+                          builder: (context) => const RegisterScreen(),
                         ),
-
                       );
-
-
                     },
-
-
-                    child: const Text(
-
-                      "Learn More About Her Health 📖",
-
-                      style: TextStyle(
-
-                        color: Color(0xFF6E7B5F),
-
-                        fontSize: 16,
-
-                        fontWeight: FontWeight.bold,
-
-                      ),
-
-                    ),
-
+                    child: const Text('Create account'),
                   ),
-
-
-
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    style: DA.outline(),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text('Log in'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: DA.sage,
+                      minimumSize: const Size.fromHeight(48),
+                      textStyle: DA.body(15, weight: FontWeight.w700),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const InformationScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text('Learn more about Her Health'),
+                  ),
                 ],
-
               ),
-
             ),
-
           ),
-
-
-        ],
-
+        ),
       ),
-
     );
-
   }
-
-
 
   Widget buildInfoCard({
-
-    required String icon,
-
+    required IconData icon,
     required String title,
-
     required String description,
-
   }) {
-
-
     return Container(
-
-      margin: const EdgeInsets.only(bottom: 15),
-
-      padding: const EdgeInsets.all(15),
-
-      decoration: BoxDecoration(
-
-        color: Colors.white.withOpacity(0.85),
-
-        borderRadius: BorderRadius.circular(20),
-
-      ),
-
-
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(18),
+      decoration: DA.card(),
       child: Row(
-
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-
-          Text(
-
-            icon,
-
-            style: const TextStyle(
-
-              fontSize: 35,
-
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: DA.blush,
+              shape: BoxShape.circle,
             ),
-
+            child: Icon(icon, color: DA.rose, size: 22),
           ),
-
-
-
-          const SizedBox(width: 15),
-
-
-
+          const SizedBox(width: 14),
           Expanded(
-
             child: Column(
-
               crossAxisAlignment: CrossAxisAlignment.start,
-
               children: [
-
-
-                Text(
-
-                  title,
-
-                  style: const TextStyle(
-
-                    fontSize: 17,
-
-                    fontWeight: FontWeight.bold,
-
-                    color: Color(0xFF6E7B5F),
-
-                  ),
-
-                ),
-
-
-
-                const SizedBox(height: 5),
-
-
-
-                Text(
-
-                  description,
-
-                  style: const TextStyle(
-
-                    fontSize: 14,
-
-                    color: Colors.black87,
-
-                  ),
-
-                ),
-
-
-
+                Text(title, style: DA.body(16, weight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(description, style: DA.body(14, color: DA.muted, height: 1.5)),
               ],
-
             ),
-
           ),
-
-
         ],
-
       ),
-
     );
-
-
   }
-
-
 }
