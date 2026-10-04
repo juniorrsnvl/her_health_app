@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../theme/design_a.dart';
 import 'health_profile_screen.dart';
 import 'login_screen.dart';
 
@@ -45,69 +46,59 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final name = AuthService.firstName ?? '';
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFB04F6C),
-        title: const Text(
-          "Settings ⚙️",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Stack(
-        children: [
-          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
-          Container(color: Colors.white.withOpacity(0.30)),
-          ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              if ((AuthService.firstName ?? '').isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    "Signed in as ${AuthService.firstName}",
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF6E7B5F),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: ListTile(
-                  leading: const Icon(Icons.favorite, color: Color(0xFF6E7B5F)),
-                  title: const Text('Health Profile'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const HealthProfileScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: ListTile(
-                  leading: Icon(Icons.logout, color: Colors.red.shade400),
-                  title: Text(
-                    'Log out',
-                    style: TextStyle(color: Colors.red.shade400),
-                  ),
-                  onTap: () => _confirmLogout(context),
-                ),
-              ),
+      backgroundColor: DA.ground,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: DA.backButton(context),
+            ),
+            const SizedBox(height: 16),
+            Text('Settings', style: DA.heading(30)),
+            if (name.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('Signed in as $name', style: DA.body(15, color: DA.muted)),
             ],
-          ),
-        ],
+            const SizedBox(height: 28),
+
+            Container(
+              decoration: DA.card(),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                    leading: const Icon(Icons.favorite_border_rounded, color: DA.sage),
+                    title: Text('Health profile', style: DA.body(16, weight: FontWeight.w700)),
+                    subtitle: Text('Your details, contacts and health info', style: DA.body(14, color: DA.quiet)),
+                    trailing: const Icon(Icons.chevron_right_rounded, color: DA.quiet),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HealthProfileScreen()),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1, color: DA.divider),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                    leading: const Icon(Icons.logout_rounded, color: DA.rose),
+                    title: Text(
+                      'Log out',
+                      style: DA.body(16, color: DA.rose, weight: FontWeight.w700),
+                    ),
+                    onTap: () => _confirmLogout(context),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

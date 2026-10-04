@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../theme/design_a.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -98,63 +99,95 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFB04F6C),
-        title: const Text(
-          "Contact Doctor 🩺",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      backgroundColor: DA.ground,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 20, 12),
+              decoration: const BoxDecoration(
+                color: DA.surface,
+                border: Border(bottom: BorderSide(color: DA.divider)),
+              ),
+              child: Row(
+                children: [
+                  DA.backButton(context),
+                  const SizedBox(width: 12),
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8EDE2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.medical_services_outlined, color: DA.sage, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Contact Doctor', style: DA.heading(18)),
+                        Text(
+                          'Your practice team replies here',
+                          style: DA.body(13, color: DA.quiet),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                color: DA.rose,
+                onRefresh: _loadThread,
+                child: _buildBody(),
+              ),
+            ),
+            _buildInputBar(),
+          ],
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Stack(
-        children: [
-          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
-          Container(color: Colors.white.withOpacity(0.30)),
-          Column(
-            children: [
-              Expanded(child: _buildBody()),
-              _buildInputBar(),
-            ],
-          ),
-        ],
       ),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: DA.rose));
     }
 
     if (_loadError != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
+      return ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const SizedBox(height: 60),
+          Text(
             _loadError!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: DA.body(15, color: DA.rejectedInk),
           ),
-        ),
+        ],
       );
     }
 
     if (messages.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
+      return ListView(
+        padding: const EdgeInsets.all(32),
+        children: [
+          const SizedBox(height: 60),
+          Text(
             "No messages yet. Send a message below to reach the practice directly.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black87),
+            style: DA.body(16, color: DA.muted),
           ),
-        ),
+        ],
       );
     }
 
     return ListView.builder(
       controller: scrollController,
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final m = messages[index];
@@ -162,34 +195,35 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
         return Align(
           alignment: isPatient ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 6),
-            padding: const EdgeInsets.all(14),
-            constraints: const BoxConstraints(maxWidth: 300),
-            decoration: BoxDecoration(
-              color: isPatient
-                  ? const Color(0xFFB04F6C)
-                  : const Color(0xFF6E7B5F),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          child: Column(
+            crossAxisAlignment: isPatient ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 4, left: 4, right: 4),
+                child: Text(
                   isPatient ? 'You' : 'Practice',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                  style: DA.body(12, color: DA.quiet, weight: FontWeight.w700),
+                ),
+              ),
+              Container(
+                constraints: const BoxConstraints(maxWidth: 300),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: isPatient ? DA.rose : DA.surface,
+                  border: isPatient ? null : Border.all(color: DA.divider),
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(20),
+                    topRight: const Radius.circular(20),
+                    bottomLeft: Radius.circular(isPatient ? 20 : 6),
+                    bottomRight: Radius.circular(isPatient ? 6 : 20),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
+                child: Text(
                   (m['message'] as String?) ?? '',
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: DA.body(15, color: isPatient ? Colors.white : DA.ink, height: 1.5),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
@@ -198,50 +232,46 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   Widget _buildInputBar() {
     return Container(
-      margin: const EdgeInsets.only(left: 20, right: 20, bottom: 25),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      decoration: const BoxDecoration(
+        color: DA.surface,
+        border: Border(top: BorderSide(color: DA.divider)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.medical_services, color: Color(0xFF6E7B5F)),
-          const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: messageController,
-              decoration: const InputDecoration(
-                hintText: "Message the practice...",
-                border: InputBorder.none,
+              style: DA.body(15),
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) {
+                if (!_isSending) _sendMessage();
+              },
+              decoration: DA.input(hint: 'Message the practice').copyWith(
+                fillColor: DA.ground,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               ),
             ),
           ),
-          GestureDetector(
-            onTap: _isSending ? null : _sendMessage,
-            child: Container(
-              height: 45,
-              width: 45,
-              decoration: const BoxDecoration(
-                color: Color(0xFFB04F6C),
-                shape: BoxShape.circle,
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: IconButton(
+              tooltip: 'Send',
+              style: IconButton.styleFrom(
+                backgroundColor: DA.rose,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: DA.rose.withValues(alpha: 0.5),
               ),
-              child: _isSending
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
+              onPressed: _isSending ? null : _sendMessage,
+              icon: _isSending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Icon(Icons.send, color: Colors.white),
+                  : const Icon(Icons.send_rounded, size: 20),
             ),
           ),
         ],

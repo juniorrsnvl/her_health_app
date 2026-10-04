@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../theme/design_a.dart';
 
 class HealthProfileScreen extends StatefulWidget {
   const HealthProfileScreen({super.key});
@@ -175,208 +176,160 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     );
   }
 
-  Widget _field(String label, IconData icon, TextEditingController controller,
-      {String? hint}) {
+  Widget _field(String label, TextEditingController controller, {String? hint}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          prefixIcon: Icon(icon, color: const Color(0xFF6E7B5F)),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DA.label(label),
+          TextField(
+            controller: controller,
+            style: DA.body(16),
+            decoration: DA.input(hint: hint),
           ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _sectionTitle(String text) {
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 6),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF6E7B5F),
-          ),
-        ),
-      ),
+      padding: const EdgeInsets.only(top: 24, bottom: 14),
+      child: Text(text, style: DA.heading(19, color: DA.sage)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFB04F6C),
-        title: const Text(
-          "Health Profile 💗",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Stack(
-        children: [
-          Container(color: const Color(0xFFFAF6F3), width: double.infinity, height: double.infinity),
-          Container(color: Colors.white.withOpacity(0.30)),
-          _buildBody(),
+      backgroundColor: DA.ground,
+      body: SafeArea(child: _buildBody()),
+    );
+  }
+
+  Widget _header() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DA.backButton(context),
+        const SizedBox(height: 16),
+        Text('Health profile', style: DA.heading(30)),
+        if (_email.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(_email, style: DA.body(15, color: DA.muted)),
         ],
-      ),
+      ],
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: DA.rose));
     }
 
-    if (_loadError != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            _loadError!,
+    if (_loadError != null || !_hasProfile) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        children: [
+          _header(),
+          const SizedBox(height: 60),
+          Text(
+            _loadError ?? "No health profile found for this account.",
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: DA.body(16, color: _loadError != null ? DA.rejectedInk : DA.muted),
           ),
-        ),
-      );
-    }
-
-    if (!_hasProfile) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            "No health profile found for this account.",
-            textAlign: TextAlign.center,
-          ),
-        ),
+        ],
       );
     }
 
     final dobText = _dob == null
-        ? 'Tap to select'
+        ? 'Select a date'
         : '${_dob!.day.toString().padLeft(2, '0')}/'
             '${_dob!.month.toString().padLeft(2, '0')}/${_dob!.year}';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          if (_email.isNotEmpty)
-            Text(_email, style: const TextStyle(color: Colors.black54)),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _header(),
 
-          _sectionTitle("👤 Personal"),
-          _field("First Name", Icons.person, firstNameController),
-          _field("Last Name", Icons.person_outline, lastNameController),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: _pickDob,
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Date of Birth',
-                  prefixIcon: const Icon(Icons.calendar_today,
-                      color: Color(0xFF6E7B5F)),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                child: Text(dobText),
-              ),
-            ),
-          ),
-
-          _sectionTitle("🏠 Contact"),
-          _field("Street Address", Icons.home, addressController),
-          _field("City", Icons.location_city, cityController),
-          _field("Emergency Contact Name", Icons.contact_phone,
-              emergencyNameController),
-          _field("Emergency Contact Number", Icons.phone_in_talk,
-              emergencyPhoneController),
-
-          _sectionTitle("❤️ Health"),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: DropdownButtonFormField<String>(
-              initialValue: _bloodType,
-              decoration: InputDecoration(
-                labelText: 'Blood Type 🩸',
-                prefixIcon:
-                    const Icon(Icons.bloodtype, color: Color(0xFF6E7B5F)),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              items: bloodTypes
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _bloodType = value;
-                });
-              },
-            ),
-          ),
-          _field("Allergies", Icons.warning, allergiesController,
-              hint: "Separate with commas"),
-          _field("Medical Conditions", Icons.medical_information,
-              conditionsController,
-              hint: "Separate with commas"),
-          _field("Current Medication", Icons.medication,
-              medicationsController,
-              hint: "Separate with commas"),
-
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB04F6C),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              onPressed: _isSaving ? null : _save,
-              child: _isSaving
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(
-                      "Save Changes 🌸",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+              _sectionTitle('Personal'),
+              _field('First name', firstNameController),
+              _field('Last name', lastNameController),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DA.label('Date of birth'),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: _pickDob,
+                      child: InputDecorator(
+                        decoration: DA.input(
+                          suffix: const Icon(Icons.calendar_today_outlined, color: DA.sage),
+                        ),
+                        child: Text(
+                          dobText,
+                          style: DA.body(16, color: _dob == null ? DA.quiet : DA.ink),
+                        ),
                       ),
                     ),
-            ),
+                  ],
+                ),
+              ),
+
+              _sectionTitle('Contact'),
+              _field('Street address', addressController),
+              _field('City', cityController),
+              _field('Emergency contact name', emergencyNameController),
+              _field('Emergency contact number', emergencyPhoneController),
+
+              _sectionTitle('Health'),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DA.label('Blood type'),
+                    DropdownButtonFormField<String>(
+                      initialValue: _bloodType,
+                      hint: Text('Select', style: DA.body(16, color: DA.quiet)),
+                      style: DA.body(16),
+                      dropdownColor: DA.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: DA.sage),
+                      decoration: DA.input(),
+                      items: bloodTypes
+                          .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _bloodType = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              _field('Allergies', allergiesController, hint: 'Separate with commas'),
+              _field('Medical conditions', conditionsController, hint: 'Separate with commas'),
+              _field('Current medication', medicationsController, hint: 'Separate with commas'),
+
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: DA.primary(),
+                onPressed: _isSaving ? null : _save,
+                child: _isSaving ? DA.buttonSpinner : const Text('Save changes'),
+              ),
+            ],
           ),
-          const SizedBox(height: 30),
-        ],
+        ),
       ),
     );
   }
