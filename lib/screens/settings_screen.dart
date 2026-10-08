@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../theme/design_a.dart';
 import 'health_profile_screen.dart';
+import 'billing_screen.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -168,6 +169,20 @@ class SettingsScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const HealthProfileScreen()),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1, color: DA.divider),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                    leading: const Icon(Icons.receipt_long_outlined, color: DA.sage),
+                    title: Text('Billing', style: DA.body(16, weight: FontWeight.w700)),
+                    subtitle: Text('View your bills and payment status', style: DA.body(14, color: DA.quiet)),
+                    trailing: const Icon(Icons.chevron_right_rounded, color: DA.quiet),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const BillingScreen()),
                       );
                     },
                   ),
