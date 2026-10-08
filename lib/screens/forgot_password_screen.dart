@@ -28,6 +28,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   String get _enteredCode => codeControllers.map((c) => c.text).join();
 
+  bool _isStrongPassword(String password) {
+    return password.length >= 8 &&
+        password.contains(RegExp(r'[A-Z]')) &&
+        password.contains(RegExp(r'[a-z]')) &&
+        password.contains(RegExp(r'[0-9]')) &&
+        password.contains(RegExp(r'[^A-Za-z0-9]'));
+  }
+
   Future<void> _handleRequestCode() async {
     final email = emailController.text.trim();
     if (email.isEmpty) {
@@ -71,6 +79,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
     if (newPasswordController.text.isEmpty) {
       _showError('Please enter a new password.');
+      return;
+    }
+    if (!_isStrongPassword(newPasswordController.text)) {
+      _showError(
+        'Use at least 8 characters with uppercase, lowercase, a number and a special character.',
+      );
       return;
     }
     if (newPasswordController.text != confirmPasswordController.text) {
@@ -304,6 +318,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           },
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '8+ characters • Uppercase • Lowercase • Number • Special character',
+                      style: DA.body(13, color: DA.quiet),
                     ),
                     const SizedBox(height: 18),
 
