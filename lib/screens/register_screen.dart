@@ -19,12 +19,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
-
+  bool _hidePassword = true;
+  bool _hideConfirmPassword = true;
   final TextEditingController addressController = TextEditingController();
   final TextEditingController cityController = TextEditingController();
 
-  final TextEditingController emergencyNameController =
-      TextEditingController();
+  final TextEditingController emergencyNameController = TextEditingController();
   final TextEditingController emergencyPhoneController =
       TextEditingController();
 
@@ -97,6 +97,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String label,
     TextEditingController controller, {
     bool password = false,
+    bool? obscurePassword,
+    VoidCallback? onTogglePassword,
     TextInputType? keyboardType,
   }) {
     return Padding(
@@ -107,10 +109,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
           DA.label(label),
           TextField(
             controller: controller,
-            obscureText: password,
+            obscureText: password ? (obscurePassword ?? true) : false,
             keyboardType: keyboardType,
             style: DA.body(16),
-            decoration: DA.input(),
+            decoration: DA.input(
+              suffix: password
+                  ? IconButton(
+                      tooltip: (obscurePassword ?? true)
+                          ? 'Show password'
+                          : 'Hide password',
+                      icon: Icon(
+                        (obscurePassword ?? true)
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: DA.sage,
+                      ),
+                      onPressed: onTogglePassword,
+                    )
+                  : null,
+            ),
           ),
         ],
       ),
@@ -151,11 +168,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             },
             child: InputDecorator(
               decoration: DA.input(
-                suffix: const Icon(Icons.calendar_today_outlined, color: DA.sage),
+                suffix:
+                    const Icon(Icons.calendar_today_outlined, color: DA.sage),
               ),
               child: Text(
                 displayText.isEmpty ? 'Select a date' : displayText,
-                style: DA.body(16, color: displayText.isEmpty ? DA.quiet : DA.ink),
+                style:
+                    DA.body(16, color: displayText.isEmpty ? DA.quiet : DA.ink),
               ),
             ),
           ),
@@ -228,7 +247,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 backgroundColor: DA.surface,
                 selectedColor: DA.blush,
-                side: BorderSide(color: isSelected ? DA.rose : DA.border, width: 1.5),
+                side: BorderSide(
+                    color: isSelected ? DA.rose : DA.border, width: 1.5),
                 shape: const StadiumBorder(),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                 onSelected: (value) {
@@ -323,7 +343,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (!_acceptedPrivacy) {
-      _showError('Please read and accept the privacy notice to create your account.');
+      _showError(
+          'Please read and accept the privacy notice to create your account.');
       return;
     }
 
@@ -343,7 +364,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         address: addressController.text,
         city: cityController.text,
         bloodType: selectedBloodType,
-        allergies: _finalizeSelection(selectedAllergies, allergyOtherController),
+        allergies:
+            _finalizeSelection(selectedAllergies, allergyOtherController),
         medicalConditions:
             _finalizeSelection(selectedConditions, conditionOtherController),
         currentMedications:
@@ -408,7 +430,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Start your Her Health journey.',
                     style: DA.body(16, color: DA.muted),
                   ),
-
                   sectionTitle('Personal information'),
                   inputField('Full name', nameController),
                   dateOfBirthField(),
@@ -416,17 +437,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       keyboardType: TextInputType.emailAddress),
                   inputField('Phone number', phoneController,
                       keyboardType: TextInputType.phone),
-                  inputField('Password', passwordController, password: true),
-                  inputField('Confirm password', confirmPasswordController,
-                      password: true),
-
+                  inputField(
+                    'Password',
+                    passwordController,
+                    password: true,
+                    obscurePassword: _hidePassword,
+                    onTogglePassword: () {
+                      setState(() {
+                        _hidePassword = !_hidePassword;
+                      });
+                    },
+                  ),
+                  inputField(
+                    'Confirm password',
+                    confirmPasswordController,
+                    password: true,
+                    obscurePassword: _hideConfirmPassword,
+                    onTogglePassword: () {
+                      setState(() {
+                        _hideConfirmPassword = !_hideConfirmPassword;
+                      });
+                    },
+                  ),
                   sectionTitle('Contact information'),
                   inputField('Street address', addressController),
                   inputField('City', cityController),
                   inputField('Emergency contact name', emergencyNameController),
-                  inputField('Emergency contact number', emergencyPhoneController,
+                  inputField(
+                      'Emergency contact number', emergencyPhoneController,
                       keyboardType: TextInputType.phone),
-
                   sectionTitle('Health information', note: 'Optional'),
                   bloodTypeField(),
                   multiSelectField(
@@ -447,7 +486,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     selected: selectedMedications,
                     otherController: medicationOtherController,
                   ),
-
                   const SizedBox(height: 20),
                   Container(
                     padding: const EdgeInsets.fromLTRB(4, 6, 12, 6),
@@ -461,8 +499,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         Checkbox(
                           value: _acceptedPrivacy,
                           activeColor: DA.rose,
-                          side: const BorderSide(color: Color(0xFFC9BDB8), width: 2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          side: const BorderSide(
+                              color: Color(0xFFC9BDB8), width: 2),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6)),
                           onChanged: (value) {
                             setState(() {
                               _acceptedPrivacy = value ?? false;
@@ -473,15 +513,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Wrap(
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              Text('I have read and agree to the ', style: DA.body(14)),
+                              Text('I have read and agree to the ',
+                                  style: DA.body(14)),
                               InkWell(
                                 onTap: () => showPrivacyNotice(context),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
                                   child: Text(
                                     'privacy notice',
-                                    style: DA.body(14, color: DA.rose, weight: FontWeight.w700)
-                                        .copyWith(decoration: TextDecoration.underline),
+                                    style: DA
+                                        .body(14,
+                                            color: DA.rose,
+                                            weight: FontWeight.w700)
+                                        .copyWith(
+                                            decoration:
+                                                TextDecoration.underline),
                                   ),
                                 ),
                               ),
