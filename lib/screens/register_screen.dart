@@ -302,6 +302,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// "Other" is replaced by whatever was typed in its follow-up field
   /// (or dropped if that field was left empty), every other selection
   /// (including "None") is sent through as-is.
+  bool _isStrongPassword(String password) {
+    return password.length >= 8 &&
+        password.contains(RegExp(r'[A-Z]')) &&
+        password.contains(RegExp(r'[a-z]')) &&
+        password.contains(RegExp(r'[0-9]')) &&
+        password.contains(RegExp(r'[^A-Za-z0-9]'));
+  }
+
   List<String> _finalizeSelection(
     Set<String> selected,
     TextEditingController otherController,
@@ -335,6 +343,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     if (passwordController.text.isEmpty) {
       _showError('Please enter a password.');
+      return;
+    }
+    if (!_isStrongPassword(passwordController.text)) {
+      _showError(
+        'Use at least 8 characters with uppercase, lowercase, a number and a special character.',
+      );
       return;
     }
     if (passwordController.text != confirmPasswordController.text) {
@@ -459,6 +473,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       });
                     },
                   ),
+                  Text(
+                    '8+ characters • Uppercase • Lowercase • Number • Special character',
+                    style: DA.body(13, color: DA.quiet),
+                  ),
+                  const SizedBox(height: 8),
                   sectionTitle('Contact information'),
                   inputField('Street address', addressController),
                   inputField('City', cityController),
