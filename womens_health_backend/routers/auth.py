@@ -176,6 +176,20 @@ def _generate_code() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
+def _validate_strong_password(password: str):
+    """Require a basic strong-password policy for new/reset passwords."""
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long.")
+    if not any(char.isupper() for char in password):
+        raise HTTPException(status_code=400, detail="Password must include at least one uppercase letter.")
+    if not any(char.islower() for char in password):
+        raise HTTPException(status_code=400, detail="Password must include at least one lowercase letter.")
+    if not any(char.isdigit() for char in password):
+        raise HTTPException(status_code=400, detail="Password must include at least one number.")
+    if not any(not char.isalnum() for char in password):
+        raise HTTPException(status_code=400, detail="Password must include at least one special character.")
+
+
 @router.post("/register")
 def register_user(user: RegisterRequest):
 
@@ -202,6 +216,7 @@ def register_user(user: RegisterRequest):
                 detail="An account with this email already exists."
             )
 
+        _validate_strong_password(user.password)
         password_hash = hash_password(user.password)
 
         email_code = _generate_code()
@@ -651,6 +666,7 @@ def reset_password(request: ResetPasswordRequest):
 
         _clear_failures(reset_key)
 
+        _validate_strong_password(request.new_password)
         new_password_hash = hash_password(request.new_password)
 
         cursor.execute(
