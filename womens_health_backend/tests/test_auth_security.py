@@ -224,13 +224,13 @@ def _request_code(client, monkeypatch, email):
 
 def test_full_password_reset_flow(setup, monkeypatch):
     client, db = setup
-    db.add_user("ada@test.com", "old-password")
+    db.add_user("ada@test.com", "OldPass1!")
     code = _request_code(client, monkeypatch, "ada@test.com")
     r = client.post("/auth/reset-password",
-                    json={"email": "ada@test.com", "code": code, "new_password": "new-password"})
+                    json={"email": "ada@test.com", "code": code, "new_password": "NewPass1!"})
     assert r.status_code == 200
-    assert login(client, "ada@test.com", "new-password").status_code == 200
-    assert login(client, "ada@test.com", "old-password").status_code == 401
+    assert login(client, "ada@test.com", "NewPass1!").status_code == 200
+    assert login(client, "ada@test.com", "OldPass1!").status_code == 401
 
 
 def test_reset_code_is_destroyed_after_five_wrong_guesses(setup, monkeypatch):
@@ -240,13 +240,13 @@ def test_reset_code_is_destroyed_after_five_wrong_guesses(setup, monkeypatch):
     wrong = "000000" if code != "000000" else "111111"
     statuses = [
         client.post("/auth/reset-password",
-                    json={"email": "ada@test.com", "code": wrong, "new_password": "x"}).status_code
+                    json={"email": "ada@test.com", "code": wrong, "new_password": "NewPass1!"}).status_code
         for _ in range(5)
     ]
     assert statuses == [400, 400, 400, 400, 429]
     # Brute force is dead: the real code no longer works either.
     r = client.post("/auth/reset-password",
-                    json={"email": "ada@test.com", "code": code, "new_password": "x"})
+                    json={"email": "ada@test.com", "code": code, "new_password": "NewPass1!"})
     assert r.status_code == 400
 
 
@@ -256,7 +256,7 @@ def test_expired_reset_code_is_rejected(setup, monkeypatch):
     code = _request_code(client, monkeypatch, "ada@test.com")
     user["reset_code_expires_at"] = datetime.utcnow() - timedelta(minutes=1)
     r = client.post("/auth/reset-password",
-                    json={"email": "ada@test.com", "code": code, "new_password": "x"})
+                    json={"email": "ada@test.com", "code": code, "new_password": "NewPass1!"})
     assert r.status_code == 400
     assert "expired" in r.json()["detail"]
 
@@ -268,6 +268,18 @@ def _register(client, accepted):
         "email": "new@test.com", "phone": "0711111111", "password": "Passw0rd!",
         "accepted_privacy": accepted,
     })
+
+
+def test_registration_rejects_weak_password(setup):
+    client, db = setup
+    r = client.post("/auth/register", json={
+        "email": "weak@test.com",
+        "phone": "0711111111",
+        "password": "weak",
+        "accepted_privacy": True,
+    })
+    assert r.status_code == 400
+    assert "Password must" in r.json()["detail"]
 
 
 def test_registration_is_refused_without_privacy_consent(setup):
