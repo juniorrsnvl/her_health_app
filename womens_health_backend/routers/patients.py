@@ -2,6 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from typing import Literal
 
 from config.database import get_database_connection
 from utils.dependencies import get_current_user
@@ -12,6 +13,19 @@ router = APIRouter(
     prefix="/patients",
     tags=["Patients"]
 )
+
+
+JourneyType = Literal[
+    "pregnancy_care",
+    "menstrual_health",
+    "postpartum_recovery",
+    "general_health",
+    "cosmetic_gynecology",
+]
+
+
+class PatientJourneyUpdateRequest(BaseModel):
+    journey_type: JourneyType
 
 
 class PatientProfileRequest(BaseModel):
@@ -316,9 +330,12 @@ def get_all_patients(
                 p.phone,
                 p.emergency_contact_name,
                 p.emergency_contact_phone,
+                hj.journey_type,
                 p.created_at,
                 p.updated_at
             FROM patients p
+            LEFT JOIN health_journeys hj
+                ON hj.patient_id = p.id
             ORDER BY p.last_name, p.first_name
             """
         )
@@ -331,6 +348,57 @@ def get_all_patients(
     finally:
         cursor.close()
         connection.close()
+
+@router.put("/{patient_id}/health-journey")
+def update_patient_health_journey(
+    patient_id: int,
+    request: PatientJourneyUpdateRequest,
+    current_user=Depends(get_current_user)
+):
+    if current_user["role_id"] not in [2, 3, 4]:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to update patient information."
+        )
+
+    connection = get_database_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute("SELECT id FROM patients WHERE id = %s", (patient_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Patient not found.")
+
+        cursor.execute(
+            """
+            INSERT INTO health_journeys (patient_id, journey_type, answers)
+            VALUES (%s, %s, '{}'::jsonb)
+            ON CONFLICT (patient_id)
+            DO UPDATE SET
+                journey_type = EXCLUDED.journey_type,
+                answers = '{}'::jsonb,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (patient_id, request.journey_type)
+        )
+
+        log_access(
+            cursor,
+            current_user["user_id"],
+            "update_patient_health_journey",
+            patient_id
+        )
+        connection.commit()
+
+        return {
+            "message": "Patient health experience updated successfully.",
+            "journey_type": request.journey_type
+        }
+
+    finally:
+        cursor.close()
+        connection.close()
+
 
 @router.get("/{patient_id}")
 def get_patient_by_id(
@@ -358,9 +426,12 @@ def get_patient_by_id(
                 p.phone,
                 p.emergency_contact_name,
                 p.emergency_contact_phone,
+                hj.journey_type,
                 p.created_at,
                 p.updated_at
             FROM patients p
+            LEFT JOIN health_journeys hj
+                ON hj.patient_id = p.id
             WHERE p.id = %s
             """,
             (patient_id,)
