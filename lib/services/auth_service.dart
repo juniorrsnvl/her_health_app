@@ -204,6 +204,17 @@ class AuthService {
     });
   }
 
+  /// Fetches the caller's current health journey.
+  static Future<Map<String, dynamic>?> getHealthJourney() async {
+    try {
+      final data = await _authorizedGetRaw('/health-journey/me');
+      return data is Map<String, dynamic> ? data : null;
+    } on AuthException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
   static Future<String> login({
     required String email,
     required String password,
