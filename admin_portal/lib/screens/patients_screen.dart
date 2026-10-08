@@ -17,6 +17,14 @@ class _PatientsScreenState extends State<PatientsScreen> {
   List<dynamic> _patients = [];
   String _searchQuery = '';
 
+  static const Map<String, String> _journeyLabels = {
+    'pregnancy_care': 'Pregnancy Care',
+    'menstrual_health': 'Menstrual Health',
+    'postpartum_recovery': 'Postpartum Recovery',
+    'general_health': "General Women's Health",
+    'cosmetic_gynecology': 'Cosmetic Gynecology',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -74,63 +82,204 @@ class _PatientsScreenState extends State<PatientsScreen> {
     }).toList();
   }
 
+  Future<String?> _updatePatientJourney(
+    int patientId,
+    String journeyType,
+  ) async {
+    try {
+      final response = await ApiService.authorizedPut(
+        '/patients/$patientId/health-journey',
+        {'journey_type': journeyType},
+      );
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        await ApiService.logout();
+        if (!mounted) return 'Your session has expired.';
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+        return 'Your session has expired.';
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final body = jsonDecode(response.body);
+        final detail = body is Map ? body['detail'] : null;
+        return detail is String
+            ? detail
+            : 'Could not update health experience.';
+      }
+
+      return null;
+    } catch (_) {
+      return 'Could not reach the server.';
+    }
+  }
+
   void _showPatientDetails(Map<String, dynamic> patient) {
+    String? selectedJourney = patient['journey_type'] as String?;
+    bool isSavingJourney = false;
+    String? journeyError;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: DA.ground,
       constraints: const BoxConstraints(maxWidth: 640),
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        final firstName = patient['first_name'] as String? ?? '';
-        final lastName = patient['last_name'] as String? ?? '';
-        final dob = patient['date_of_birth'] as String?;
-        final phone = patient['phone'] as String?;
-        final emergencyName = patient['emergency_contact_name'] as String?;
-        final emergencyPhone = patient['emergency_contact_phone'] as String?;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final patientId = patient['id'] as int;
+            final firstName = patient['first_name'] as String? ?? '';
+            final lastName = patient['last_name'] as String? ?? '';
+            final dob = patient['date_of_birth'] as String?;
+            final phone = patient['phone'] as String?;
+            final emergencyName = patient['emergency_contact_name'] as String?;
+            final emergencyPhone =
+                patient['emergency_contact_phone'] as String?;
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                28,
+                28,
+                28,
+                32 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  DA.initials(firstName, lastName, size: 52),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text('$firstName $lastName'.trim(), style: DA.heading(24)),
+                  Row(
+                    children: [
+                      DA.initials(firstName, lastName, size: 52),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          '$firstName $lastName'.trim(),
+                          style: DA.heading(24),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: DA.card(),
+                    child: Column(
+                      children: [
+                        _detailRow('Date of birth', dob ?? 'Not provided'),
+                        _detailRow('Phone', phone ?? 'Not provided'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Health experience',
+                    style: DA.heading(17, color: DA.sage),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: _journeyLabels.containsKey(selectedJourney)
+                        ? selectedJourney
+                        : null,
+                    hint: Text('Select', style: DA.body(16, color: DA.quiet)),
+                    style: DA.body(16),
+                    dropdownColor: DA.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    decoration: DA.input(),
+                    items: _journeyLabels.entries
+                        .map(
+                          (entry) => DropdownMenuItem(
+                            value: entry.key,
+                            child: Text(entry.value),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: isSavingJourney
+                        ? null
+                        : (value) {
+                            setModalState(() {
+                              selectedJourney = value;
+                              journeyError = null;
+                            });
+                          },
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    style: DA.primary(),
+                    onPressed: isSavingJourney || selectedJourney == null
+                        ? null
+                        : () async {
+                            setModalState(() {
+                              isSavingJourney = true;
+                              journeyError = null;
+                            });
+
+                            final error = await _updatePatientJourney(
+                              patientId,
+                              selectedJourney!,
+                            );
+
+                            if (!mounted) return;
+
+                            if (error != null) {
+                              setModalState(() {
+                                isSavingJourney = false;
+                                journeyError = error;
+                              });
+                              return;
+                            }
+
+                            patient['journey_type'] = selectedJourney;
+                            setModalState(() {
+                              isSavingJourney = false;
+                            });
+
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Health experience updated.'),
+                              ),
+                            );
+                          },
+                    child: isSavingJourney
+                        ? DA.buttonSpinner
+                        : const Text('Save health experience'),
+                  ),
+                  if (journeyError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      journeyError!,
+                      style: DA.body(14, color: DA.rejectedInk),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Changing this resets the old journey answers so information from one experience is not carried into another.',
+                    style: DA.body(13, color: DA.quiet),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Emergency contact',
+                    style: DA.heading(17, color: DA.sage),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: DA.card(),
+                    child: Column(
+                      children: [
+                        _detailRow('Name', emergencyName ?? 'Not provided'),
+                        _detailRow('Phone', emergencyPhone ?? 'Not provided'),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: DA.card(),
-                child: Column(
-                  children: [
-                    _detailRow('Date of birth', dob ?? 'Not provided'),
-                    _detailRow('Phone', phone ?? 'Not provided'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text('Emergency contact', style: DA.heading(17, color: DA.sage)),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: DA.card(),
-                child: Column(
-                  children: [
-                    _detailRow('Name', emergencyName ?? 'Not provided'),
-                    _detailRow('Phone', emergencyPhone ?? 'Not provided'),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
