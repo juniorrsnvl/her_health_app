@@ -6,6 +6,7 @@ import 'login_screen.dart';
 import 'patients_screen.dart';
 import 'messages_inbox_screen.dart';
 import 'articles_manage_screen.dart';
+import 'billing_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -160,6 +161,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ArticlesManageScreen()),
+            );
+          }),
+          DA.barLink(Icons.receipt_long_outlined, 'Billing', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BillingScreen()),
             );
           }),
           const SizedBox(width: 8),
