@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/design_a.dart';
+import 'journey_questions_screen.dart';
 
 class HealthProfileScreen extends StatefulWidget {
   const HealthProfileScreen({super.key});
@@ -24,9 +25,26 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', "I don't know",
   ];
 
+  static const Map<String, String> journeyLabels = {
+    'pregnancy_care': 'Pregnancy Care',
+    'menstrual_health': 'Menstrual Health',
+    'postpartum_recovery': 'Postpartum Recovery',
+    'general_health': "General Women's Health",
+    'cosmetic_gynecology': 'Cosmetic Gynecology',
+  };
+
+  static const Map<String, String> journeyDisplayValues = {
+    'pregnancy_care': '🤰 Pregnancy Care',
+    'menstrual_health': '🌸 Menstrual Health',
+    'postpartum_recovery': '👶 Postpartum Recovery',
+    'general_health': "💚 General Women's Health",
+    'cosmetic_gynecology': '✨ Cosmetic Gynecology',
+  };
+
   String _email = '';
   DateTime? _dob;
   String? _bloodType;
+  String? _journeyType;
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -61,11 +79,13 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     try {
       final me = await AuthService.getMe();
       final profile = me['profile'];
+      final journey = await AuthService.getHealthJourney();
 
       if (!mounted) return;
 
       setState(() {
         _email = (me['email'] as String?) ?? '';
+        _journeyType = journey?['journey_type'] as String?;
 
         if (profile is! Map) {
           _hasProfile = false;
@@ -165,6 +185,21 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
         });
       }
     }
+  }
+
+  void _changeJourney() {
+    final displayJourney = journeyDisplayValues[_journeyType];
+    if (displayJourney == null) {
+      _showMessage('Please select a health experience first.', isError: true);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => JourneyQuestionsScreen(journey: displayJourney),
+      ),
+    );
   }
 
   void _showMessage(String message, {bool isError = false}) {
@@ -291,6 +326,53 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
               _field('Emergency contact number', emergencyPhoneController),
 
               _sectionTitle('Health'),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DA.label('Current health experience'),
+                    DropdownButtonFormField<String>(
+                      initialValue: journeyLabels.containsKey(_journeyType)
+                          ? _journeyType
+                          : null,
+                      hint: Text('Select', style: DA.body(16, color: DA.quiet)),
+                      style: DA.body(16),
+                      dropdownColor: DA.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: DA.sage,
+                      ),
+                      decoration: DA.input(),
+                      items: journeyLabels.entries
+                          .map(
+                            (entry) => DropdownMenuItem(
+                              value: entry.key,
+                              child: Text(entry.value),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _journeyType = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton(
+                      style: DA.outline(),
+                      onPressed: _changeJourney,
+                      child: const Text('Update health experience'),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'You will answer a few questions for the new experience before it replaces your current one.',
+                      style: DA.body(13, color: DA.quiet),
+                    ),
+                  ],
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: Column(
