@@ -1,4 +1,4 @@
-"""
+﻿"""
 routers/chat.py
 
 Backs chatbot_screen.dart. Every message the patient sends is saved,
@@ -25,6 +25,7 @@ from pydantic import BaseModel
 
 from config.database import get_database_connection
 from utils.dependencies import get_current_user
+from knowledge_base import QA_BANK
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -41,7 +42,7 @@ Your role:
 - You are NOT a doctor. Never diagnose, never tell someone what condition they have, never recommend a specific medication or dosage.
 - For anything that sounds urgent, severe, or persistent, clearly encourage booking an appointment (the app has a real Appointments feature) or seeking care directly, rather than trying to resolve it yourself.
 - If the patient's health journey context is provided below, you may refer to it naturally when it's relevant, but don't force it into every reply.
-- Keep a gentle, encouraging tone. Occasional use of soft emoji (🌸🌿💛) fits the app's style, but don't overdo it.
+- Keep a gentle, encouraging tone. Occasional use of soft emoji (ðŸŒ¸ðŸŒ¿ðŸ’›) fits the app's style, but don't overdo it.
 """
 
 
@@ -54,6 +55,37 @@ class ChatMessageResponse(BaseModel):
     sender: str
     message: str
     created_at: str
+
+
+
+_GUIDED_TOPICS = [
+    {"id": 1, "title": "Pregnancy and prenatal care", "category": "Pregnancy and Prenatal Care"},
+    {"id": 2, "title": "Menstrual health", "category": "Menstrual Health"},
+    {"id": 3, "title": "Postpartum recovery", "category": "Postpartum Recovery"},
+    {"id": 4, "title": "Cosmetic gynaecology", "category": "Cosmetic Gynaecology"},
+    {"id": 5, "title": "General women's health and wellness", "category": "General Women's Health and Wellness"},
+    {"id": 6, "title": "Sexual and reproductive health", "category": "Sexual and Reproductive Health"},
+    {"id": 7, "title": "Symptoms and common health concerns", "category": "Common Symptoms and Health Concerns"},
+    {"id": 8, "title": "Medication and supplements", "category": "Medication, Supplements and Nutrition"},
+    {"id": 9, "title": "App-related questions", "category": "Her Health Application"},
+]
+
+
+@router.get("/topics")
+def get_guided_topics(current_user: dict = Depends(get_current_user)):
+    """Return guided topics and their existing curated questions."""
+    return [
+        {
+            "id": topic["id"],
+            "title": topic["title"],
+            "questions": [
+                {"id": item["id"], "question": item["question"]}
+                for item in QA_BANK
+                if item["category"] == topic["category"]
+            ],
+        }
+        for topic in _GUIDED_TOPICS
+    ]
 
 
 def _get_patient_id(cursor, user_id: int) -> int:
@@ -353,3 +385,4 @@ def get_messages(current_user: dict = Depends(get_current_user)):
         ]
     finally:
         connection.close()
+
